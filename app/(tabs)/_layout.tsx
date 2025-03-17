@@ -46,7 +46,7 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: 'Relatos',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="note.text" color={color} />,
         }}
       />
     </Tabs>
