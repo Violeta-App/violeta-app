@@ -1,26 +1,44 @@
-// components/ActionButtons.tsx
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
 import { theme } from '../app/_layout';
 
 interface ButtonProps {
   title: string;
   backgroundColor: string;
-  iconName: string;
+  icon: string;
+  destination: string;
 }
 
-const ActionButton = ({ title, backgroundColor, iconName }: ButtonProps) => (
-  <TouchableOpacity style={[styles.button, { backgroundColor }]}> 
-    <FontAwesome5 name={iconName} size={32} color={theme.colors.white} />
-    <Text style={styles.buttonText}>{title}</Text>
-  </TouchableOpacity>
-);
+const ActionButton = ({ title, backgroundColor, icon, destination }: ButtonProps) => {
+  const navigation = useNavigation();
+
+  return (
+    <TouchableOpacity
+      style={[styles.button, { backgroundColor }]}
+      onPress={() => navigation.navigate(destination)}
+    >
+      <FontAwesome5 name={icon} size={24} color={theme.colors.white} />
+      <Text style={styles.buttonText}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
 
 export function ActionButtons() {
   return (
     <View style={styles.container}>
-      <ActionButton title="Locais seguros próximos à você" backgroundColor={theme.colors.green} iconName="shield-alt" />
-      <ActionButton title="Alertas da comunidade" backgroundColor={theme.colors.orange} iconName="exclamation-triangle" />
+      <ActionButton
+        title="Locais seguros próximos a você"
+        backgroundColor={theme.colors.green}
+        icon="shield-alt"
+        destination="reports"
+      />
+      <ActionButton
+        title="Alertas da comunidade"
+        backgroundColor={theme.colors.orange}
+        icon="exclamation-triangle"
+        destination="reports"
+      />
     </View>
   );
 }
@@ -33,7 +51,8 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 30,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

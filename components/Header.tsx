@@ -13,7 +13,7 @@ export function Header() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 10 },
+  container: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 20 },
   iconContainer: {
     width: 40,
     height: 40,
@@ -23,5 +23,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: { width: 24, height: 24, tintColor: theme.colors.black },
-  greeting: { fontSize: 18, fontFamily: theme.fonts.ibmPlexSans, color: theme.colors.black },
+  greeting: { fontSize: 16, fontFamily: theme.fonts.ibmPlexSans, color: theme.colors.black, fontWeight: '500' },
 });

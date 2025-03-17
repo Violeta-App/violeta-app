@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { RecentRoutes } from '@/components/RecentRoutes';
 import { ActionButtons } from '@/components/ActionButtons';
 import { CommunitySection } from '@/components/CommunitySection';
-import { SearchBar } from '@/components/SearchBar';
+import { SearchBarRoute } from '@/components/SearchBarRoute';
 import { theme } from '../_layout';
 
 export default function HomeScreen() {
@@ -11,7 +11,7 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Header />
-        <SearchBar />
+        <SearchBarRoute />
         <RecentRoutes />
         <ActionButtons />
         <CommunitySection />
@@ -27,6 +27,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 60,
   },
 });
