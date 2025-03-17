@@ -38,7 +38,7 @@ export function ReportCard({ location, timestamp, category, description }: Repor
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: theme.colors.primaryPurple,
+        backgroundColor: theme.colors.lightPurple,
         padding: 16,
         borderRadius: 16,
         marginBottom: 12,

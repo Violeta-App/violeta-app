@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { FilterTabs } from '@/components/FilterTabs';
-import { SearchBar } from '@/components/SearchBar';
+import { SearchBarLocal } from '@/components/SearchBarLocal';
 import { NearbyPlaces } from '@/components/NearbyPlaces';
 import { ReportCard } from '@/components/ReportCard';
 import { theme } from '../_layout';
@@ -10,6 +10,7 @@ import { useNavigation } from 'expo-router';
 
 export default function ReportsScreen() {
   const [activeTab, setActiveTab] = useState('community');
+  const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
 
   return (
@@ -18,8 +19,8 @@ export default function ReportsScreen() {
         <FilterTabs activeTab={activeTab} onChangeTab={setActiveTab} />
         {activeTab === 'community' ? (
           <View>
-            <SearchBar />
-            <NearbyPlaces />
+            <SearchBarLocal onSearch={setSearchQuery} />
+            <NearbyPlaces searchQuery={searchQuery} />
           </View>
         ) : (
           <View>
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     color: theme.colors.black,
   },
   addButton: {
-    backgroundColor: theme.colors.primaryPurple,
+    backgroundColor: theme.colors.lightPurple,
     padding: 12,
     borderRadius: 30,
     alignItems: 'center',

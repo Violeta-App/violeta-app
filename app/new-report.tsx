@@ -1,18 +1,26 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { useState } from 'react';
-import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
+import { Stack, useNavigation } from 'expo-router';
 import { theme } from '../app/_layout';
 import { FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function NewReportScreen() {
   const navigation = useNavigation();
-  const [category, setCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+
+  const categories = ["Assédio", "Furto/Roubo", "Má Iluminação", "Pouca movimentação", "Pouco Policiamento"];
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((cat) => cat !== category) : [...prev, category]
+    );
+  };
 
   return (
     <>
@@ -34,12 +42,15 @@ export default function NewReportScreen() {
 
         <Text style={styles.label}>Categoria</Text>
         <View style={styles.categoryContainer}>
-          {["Assédio", "Furto/Roubo", "Má Iluminação", "Pouca movimentação", "Pouco Policiamento"].map((cat) => (
+          {categories.map((cat) => (
             <TouchableOpacity
               key={cat}
-              style={[styles.categoryButton, category === cat && styles.categoryButtonActive]}
-              onPress={() => setCategory(cat)}>
-              <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>{cat}</Text>
+              style={[styles.categoryButton, selectedCategories.includes(cat) && styles.categoryButtonActive]}
+              onPress={() => toggleCategory(cat)}
+            >
+              <Text style={[styles.categoryText, selectedCategories.includes(cat) && styles.categoryTextActive]}>
+                {cat}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
