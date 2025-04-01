@@ -1,20 +1,13 @@
-import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
-import MapViewComponent from "../../components/MapView";
+import React from 'react';
+import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
+import MapScreen from "../../components/MapView";
 
 export default function ExploreScreen() {
-  const [region] = useState({
-    latitude: -8.053971,
-    longitude: -34.881715,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  });
-
   return (
-    <View style={styles.container}>
-      {/* Renderiza o mapa com a região fixa */}
-      <MapViewComponent />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <MapScreen />
+    </SafeAreaView>
   );
 }
 
