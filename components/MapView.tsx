@@ -1,8 +1,10 @@
-import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity, TextInput } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region, Marker, Callout } from 'react-native-maps';
-import { markers } from '../assets/markers'
-import {alerts} from '../assets/alerts'
+import MapViewDirections from 'react-native-maps-directions';
+import Geocoder from 'react-native-geocoding';
+import { PermissionsAndroid } from 'react-native';
+import { alerts } from '../assets/alerts';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -14,7 +16,7 @@ const INITIAL_REGION = {
   longitude: -34.870314,
   latitudeDelta: LATITUDE_DELTA,
   longitudeDelta: LONGITUDE_DELTA,
-}
+};
 
 type AlertType = {
   latitude: number;
@@ -22,44 +24,91 @@ type AlertType = {
   title: string;
   description: string;
   type: string;
-  photo: any; // Pode ser 'require' ou um caminho para a imagem
+  photo: any;
 };
 
-interface MapScreenProps {
-  // Você pode adicionar props específicas aqui conforme necessário
-}
+const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 
-const MapScreen: React.FC<MapScreenProps> = () => {
+const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
-
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
+  const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
+  const [destination, setDestination] = useState({ latitude: 0, longitude: 0 });
+  const [originText, setOriginText] = useState('');
+  const [destinationText, setDestinationText] = useState('');
+
+  useEffect(() => {
+    // Solicitar permissões de localização no Android
+    const requestLocationPermission = async () => {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Permission to access location',
+          message: 'We need your location to show directions',
+          buttonPositive: 'OK',  // Adicione isso
+        }
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        getLocation();
+      } else {
+        Alert.alert('Location permission denied');
+      }
+    };    
+
+    requestLocationPermission();
+  }, []);
+
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setOrigin({ latitude, longitude });
+      },
+      (error) => {
+        console.log(error);
+      },
+      { enableHighAccuracy: true, timeout: 2000, maximumAge: 1000 }
+    );
+  };
 
   const onRegionChange = (region: Region) => {
-    console.log(region)
-  }
-
-  const onMarkerSelected = (marker: any) => {
-    Alert.alert(marker.name)
-  }
-
-  // const onAlertSelected = (alert: any) => {
-  //   Alert.alert(
-  //     alert.title,
-  //     `Descrição: ${alert.description}\nTipo: ${alert.type}`,
-  //     [
-  //       { text: 'OK' }
-  //     ]
-  //   );
-  // };
+    console.log(region);
+  };
 
   const onAlertSelected = (alert: any) => {
-    setSelectedAlert(alert);  // Armazenar o alerta selecionado
-    setIsModalVisible(true);  // Exibir o modal
+    setSelectedAlert(alert);
+    setIsModalVisible(true);
   };
 
   const closeModal = () => {
-    setIsModalVisible(false);  // Fechar o modal
+    setIsModalVisible(false);
+  };
+
+  const handleSearch = () => {
+    if (originText) {
+      Geocoder.init(GOOGLE_MAPS_APIKEY);
+      Geocoder.from(originText)
+        .then((json) => {
+          const location = json.results[0].geometry.location;
+          setOrigin({ latitude: location.lat, longitude: location.lng });
+        })
+        .catch((error) => console.warn(error));
+    } else {
+      alert('Please enter an origin address');
+    }
+
+    if (destinationText) {
+      Geocoder.init(GOOGLE_MAPS_APIKEY);
+      Geocoder.from(destinationText)
+        .then((json) => {
+          const location = json.results[0].geometry.location;
+          setDestination({ latitude: location.lat, longitude: location.lng });
+        })
+        .catch((error) => console.warn(error));
+    } else {
+      alert('Please enter a destination address');
+    }
   };
 
   return (
@@ -70,40 +119,27 @@ const MapScreen: React.FC<MapScreenProps> = () => {
         initialRegion={INITIAL_REGION}
         showsUserLocation={true}
         showsMyLocationButton={true}
-        showsTraffic={false}
-        moveOnMarkerPress={false}
         onRegionChangeComplete={onRegionChange}
         ref={mapRef}
       >
-        {/* {markers.map((marker, index) => (
-          <Marker
-            key={index}
-            coordinate={marker}
-            onPress={() => onMarkerSelected(marker)}
-            anchor={{ x: 0.5, y: 1 }} // Posicionando imagem
-          >
-            <Image
-              source={require('../assets/images/alert.png')}
-              style={{ width: 40, height: 40 }} // Redimensionando a imagem
-            />
-          </Marker>
-        ))} */}
         {alerts.map((alert, index) => (
-          <Marker
-            key={index}
-            coordinate={alert}
-            onPress={() => onAlertSelected(alert)}
-            anchor={{ x: 0.5, y: 1 }} // Posicionando imagem
-          >
-            <Image
-              source={alert.photo}
-              style={{ width: 30, height: 30 }} // Redimensionando a imagem
-            />
+          <Marker key={index} coordinate={alert} onPress={() => onAlertSelected(alert)}>
+            <Image source={alert.photo} style={{ width: 30, height: 30 }} />
           </Marker>
         ))}
+
+        {origin.latitude !== 0 && destination.latitude !== 0 && (
+          <MapViewDirections
+            origin={origin}
+            destination={destination}
+            apikey={GOOGLE_MAPS_APIKEY}
+            strokeWidth={4}
+            strokeColor="blue"
+          />
+        )}
       </MapView>
 
-      {/* Modal para exibir o alerta detalhado */}
+      {/* Modal */}
       {selectedAlert && (
         <Modal
           animationType="slide"
@@ -124,6 +160,25 @@ const MapScreen: React.FC<MapScreenProps> = () => {
           </View>
         </Modal>
       )}
+
+      {/* Inputs de Origem e Destino */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          onChangeText={(text) => setOriginText(text)}
+          placeholder="Origem"
+          value={originText}
+        />
+        <TextInput
+          style={styles.input}
+          onChangeText={(text) => setDestinationText(text)}
+          placeholder="Destino"
+          value={destinationText}
+        />
+        <TouchableOpacity style={styles.button} onPress={handleSearch}>
+          <Text style={styles.buttonText}>Buscar Rota</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -178,6 +233,32 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: '#fff',
+    fontSize: 16,
+  },
+  inputContainer: {
+    position: 'absolute',
+    top: 30,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  input: {
+    height: 40,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+    paddingLeft: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  button: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
     fontSize: 16,
   },
 });
