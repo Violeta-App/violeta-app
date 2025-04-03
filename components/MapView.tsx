@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Region, Marker, Callout } from 'react-native-maps';
+import MapView, { PROVIDER_DEFAULT, Region, Marker, Callout } from 'react-native-maps';
 import { markers } from '../assets/markers'
 import {alerts} from '../assets/alerts'
 
@@ -66,7 +66,7 @@ const MapScreen: React.FC<MapScreenProps> = () => {
     <View style={{ flex: 1 }}>
       <MapView
         style={StyleSheet.absoluteFillObject}
-        provider={PROVIDER_GOOGLE}
+        provider={PROVIDER_DEFAULT}
         initialRegion={INITIAL_REGION}
         showsUserLocation={true}
         showsMyLocationButton={true}
