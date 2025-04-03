@@ -3,7 +3,7 @@ import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpaci
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
-import { PermissionsAndroid } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { alerts } from '../assets/alerts';
 
 const { width, height } = Dimensions.get('window');
@@ -47,34 +47,39 @@ const MapScreen: React.FC = () => {
   const [isRouteRequested, setIsRouteRequested] = useState(false);
   const [segmentsColors, setSegmentsColors] = useState<string[]>([]);
 
-  // Requesting location permission
-  useEffect(() => {
-    const checkAndRequestPermission = async () => {
-      const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-      
-      if (hasPermission) {
-        getUserLocation();
-      } else {
+  const requestLocationPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
-            title: 'Permission to access location',
-            message: 'We need your location to show directions',
+            title: 'Permissão para acessar a localização',
+            message: 'Este app precisa da sua localização para funcionar corretamente.',
+            buttonNeutral: 'Perguntar depois',
+            buttonNegative: 'Cancelar',
             buttonPositive: 'OK',
           }
         );
-  
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Permissão concedida');
           getUserLocation();
         } else {
-          Alert.alert('Location permission denied');
+          Alert.alert('Permissão negada', 'A localização é necessária para usar esta funcionalidade.');
         }
+      } catch (err) {
+        console.warn(err);
       }
-    };
-  
-    checkAndRequestPermission();
-  }, []);
+    }
+    if (Platform.OS === 'ios') {
+      // Code specific to iOS platform
+    }
+  };
 
+  // Requesting location permission
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+  
   const getUserLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
