@@ -4,7 +4,7 @@ import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } 
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
 import { PermissionsAndroid, Platform } from 'react-native';
-import { alerts } from '../assets/alerts';
+//import { alerts } from '../assets/alerts';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -25,6 +25,8 @@ type AlertType = {
   description: string;
   type: string;
   photo: any;
+  occurrence_score?: number; // ← adicionado
+  year: number
 };
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
@@ -32,9 +34,33 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
 
+
   // Alert
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
+  const [alerts, setAlerts] = useState<AlertType[]>([]);
+
+  useEffect(() => {
+    fetch('https://violeta-be.onrender.com/occurrences')
+      .then((response) => response.json())
+      .then((data) => {
+        const mappedAlerts = data.map((item: any) => ({
+          latitude: item.latitude,
+          longitude: item.longitude,
+          title: item.main_reason,
+          description: `${item.date.split('T')[0]} às ${item.time}`,
+          type: `${item.occurrence_score} pontos de risco`,
+          photo: require('../assets/images/alert.png'),
+          occurrence_score: item.occurrence_score,
+          year: parseInt(item.date.substring(0, 4), 10),
+        }));
+        setAlerts(mappedAlerts);
+      })
+      .catch((error) => {
+        console.error('Erro ao buscar alertas:', error);
+      });
+  }, []);
+
 
   // MapView
   const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
@@ -94,7 +120,7 @@ const MapScreen: React.FC = () => {
   };
 
   const onRegionChange = (region: Region) => {
-    console.log(region);
+    //console.log(region);
   };
 
   const onAlertSelected = (alert: any) => {
@@ -137,20 +163,89 @@ const MapScreen: React.FC = () => {
     }
   };
 
-  const getSegmentColor = (): string => {
-    const colors = ['#CF5C36', '#04724D', '#FFD936'];
+    // Cálculo do risco de um ponto com base em todas as ocorrências 
+  const calculateRiskForPoint = (point: { latitude: number, longitude: number }, alerts: AlertType[]): number => {
+    let maxRisk = 0;
+    let dist = 0; //for debug
+    let lat = 0; //for debug
+    let lon = 0; //for debug
+    let risk = 0;
 
-    // Aqui implementaremos a lógica de obter a cor via métrica de segurança. No momento isso está sendo feito aleatoriamente.
-    const randomIndex = Math.floor(Math.random() * colors.length);
-    return colors[randomIndex];
+    alerts.forEach(alert => {
+      const dx = alert.latitude - point.latitude;
+      const dy = alert.longitude - point.longitude;
+      const distanceSquared = dx * dx + dy * dy;
+      const distance = Math.sqrt(distanceSquared);
+
+      let year = 1;
+      if (alert.year == 2024) {
+        year = 1.2
+      }
+      else if (alert.year == 2023) {
+        year = 1.5;
+      }
+
+      const score = alert.occurrence_score ?? 0; // seta para 0 se não existir
+      const point_risk = (score)/(3*year) - distance*11000;
+      if (point_risk > 0) {
+        risk += point_risk
+      }
+
+      if (risk > maxRisk) {
+        dist = distance*11000;
+        maxRisk = risk;
+        if (risk > 100) {
+          maxRisk = 100;
+        }
+        lat = alert.latitude;
+        lon = alert.longitude;
+      }
+    });
+    
+    //console.log(lat); //debug
+    //console.log(lon); //debug
+    //console.log(dist); //debug
+    //console.log(maxRisk)
+    return maxRisk;
+  };
+
+
+  const getColorFromRisk = (risk: number): string => {
+    if (risk <= 20) return '#04724D'; // verde
+    if (risk <= 40) return '#FFD936'; // amarelo
+    return '#CF5C36'; // vermelho
   };
 
   const handleRouteReady = (result: any) => {
-    setRouteCoordinates(result.coordinates); // Retorna as coordenadas que formam a rota gerada automaticamente pelo MapViewDirections
+    const coordinates = result.coordinates;
+    setRouteCoordinates(coordinates);
+  
+    const segmentColors: string[] = [];
+    let totalRisk = 0;
+    let segmentCount = 0;
+  
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const pointA = coordinates[i];
+      const pointB = coordinates[i + 1];
+  
+      const riskA = calculateRiskForPoint(pointA, alerts);
+      const riskB = calculateRiskForPoint(pointB, alerts);
+  
+      const averageRisk = (riskA + riskB) / 2;
+      totalRisk += averageRisk;
+      segmentCount++;
 
-    const colors = result.coordinates.map(() => getSegmentColor()); // Mapeia cada subsegmento da rota para uma cor
-    setSegmentsColors(colors);
+      const segmentColor = getColorFromRisk(averageRisk);
+      segmentColors.push(segmentColor);
+    }
+  
+    setSegmentsColors(segmentColors);
+
+    const routeAverageRisk = segmentCount > 0 ? totalRisk / segmentCount : 0;
+    const safetyPercentual = 100 - routeAverageRisk;
+    console.log('🚨 Segurança da rota:', safetyPercentual.toFixed(2),'%');
   };
+  
 
   return (
     <View style={{ flex: 1 }}>
