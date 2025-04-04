@@ -40,6 +40,9 @@ const MapScreen: React.FC = () => {
   const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
   const [destination, setDestination] = useState({ latitude: 0, longitude: 0 });
 
+  const [originString, setOriginString] = useState('');
+  const [destinationString, setDestinationString] = useState('');
+
   // Routes
   const [originText, setOriginText] = useState('');
   const [destinationText, setDestinationText] = useState('');
@@ -114,6 +117,7 @@ const MapScreen: React.FC = () => {
         .then((json) => {
           const location = json.results[0].geometry.location;
           setOrigin({ latitude: location.lat, longitude: location.lng });
+          setOriginString(originText);
         })
         .catch((error) => console.warn(error));
     } else {
@@ -126,6 +130,7 @@ const MapScreen: React.FC = () => {
         .then((json) => {
           const location = json.results[0].geometry.location;
           setDestination({ latitude: location.lat, longitude: location.lng });
+          setDestinationString(destinationText);
         })
         .catch((error) => console.warn(error));
     } else {
@@ -170,10 +175,10 @@ const MapScreen: React.FC = () => {
         ))}
 
         {/* Calcula a rota entre dois pontos automaticamente */}
-        {isRouteRequested && origin.latitude !== 0 && destination.latitude !== 0 && (
+        {isRouteRequested && originString !== "" && destinationString !== "" && (
           <MapViewDirections
-            origin={origin}
-            destination={destination}
+            origin={originString}
+            destination={destinationString}
             apikey={GOOGLE_MAPS_APIKEY}
             strokeWidth={0} // Para não renderizar a rota
             splitWaypoints={true}
