@@ -1,17 +1,15 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity, TextInput } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { StyleSheet, View, Dimensions, Image, Text, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
-import { PermissionsAndroid, Platform } from 'react-native';
 import { alerts } from '../assets/alerts';
-import { FontAwesome5 } from '@expo/vector-icons';
 import { Linking } from 'react-native';
 import AlertModal from "@/components/AlertModal"
 import useLocation from '../hooks/useLocation'; 
 import InputControls from '@/components/InputControls';
-
-
+import RouteButtons from '@/components/RouteButtons';
+import AddAlertModal from '@/components/AddAlert';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -39,9 +37,24 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
 
-  // Alert
+  // Alerts
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newType, setNewType] = useState('');
+
+  const handleAddAlert = (alert: { title: string; description: string; type: string }) => {
+    // mudar para adicionar no backend
+    console.log('Novo alerta:', alert);
+    console.log(`Localização: ${origin.latitude}, ${origin.longitude}`);
+  
+    setAddModalVisible(false);
+    setNewTitle('');
+    setNewDescription('');
+    setNewType('');
+  };
   
 
   // MapView
@@ -217,7 +230,17 @@ const MapScreen: React.FC = () => {
         onClose={closeModal} 
       />
       )}
-
+        <AddAlertModal
+          visible={addModalVisible}
+          onClose={() => setAddModalVisible(false)}
+          onSubmit={handleAddAlert}
+          title={newTitle}
+          setTitle={setNewTitle}
+          description={newDescription}
+          setDescription={setNewDescription}
+          type={newType}
+          setType={setNewType}
+        />
       {/* Inputs de Origem e Destino */}
       {!showActionButtons ? (
       <InputControls
@@ -227,52 +250,17 @@ const MapScreen: React.FC = () => {
       onChangeDestination={setDestinationText}
       onSearchPress={handleSearch}
     />
+    
 ) : (
-  <View style={styles.actionButtonsContainer}>
-    <TouchableOpacity style={styles.actionButton} onPress={handleResetRoute}>
-      <Text style={styles.actionButtonText}>Nova Rota</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E57373' }]} onPress={callPolice}>
-      <Text style={[styles.actionButtonText, { color: '#fff' }]}>Ligar 190</Text>
-    </TouchableOpacity>
-  </View>
+      <RouteButtons
+        destinationText={destinationText}
+        onResetRoute={handleResetRoute}
+        onCallPolice={callPolice}
+        setAddModalVisible={setAddModalVisible}
+      />
 )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  actionButtonsContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#CFB7EA',
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#2A2A2A',
-    fontWeight: 'bold',
-  },
-  
-});
 
 export default MapScreen;
