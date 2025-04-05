@@ -4,7 +4,7 @@ import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } 
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
 import { alerts } from '../assets/alerts';
-import { fetchAlerts, createAlert, deleteAlert, fetchAlertById, Alerta  } from '../assets/alertas';
+import { fetchAlerts, createAlert, deleteAlert, fetchAlertById, Alerta, AlertaInput  } from '../assets/alertas';
 import { Linking } from 'react-native';
 import AlertModal from "@/components/AlertModal"
 import useLocation from '../hooks/useLocation'; 
@@ -66,19 +66,17 @@ const MapScreen: React.FC = () => {
     loadAlertas();
   }, []);
 
-  const addAlert = (newAlert: NewAlert) => {
-    const fullAlert: AlertType = {
-      ...newAlert,
-      upvotes: 0,
-      downvotes: 0,
+  const addAlert = async (newAlert: NewAlert) => {
+    const fullAlert: AlertaInput = {
+      titulo: newAlert.title,
+      tipo: newAlert.type,
+      descricao: newAlert.description,
       createdBy: 'Usuário', // pode ajustar se tiver login
-      timestamp: new Date().toISOString(),
-      duration: 'Permanente',
-      photo: require('../assets/images/alert.png'),
+      imagem: '../assets/images/alert.png',
       latitude: origin.latitude,
       longitude: origin.longitude,
     };
-    setAlerts([...allAllerts, fullAlert]);
+    await createAlert(fullAlert)
     console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
   };
   
