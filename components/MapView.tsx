@@ -23,13 +23,21 @@ const INITIAL_REGION = {
   longitudeDelta: LONGITUDE_DELTA,
 };
 
-type AlertType = {
-  latitude: number;
-  longitude: number;
+type NewAlert = {
   title: string;
   description: string;
   type: string;
+};
+
+type AlertType = NewAlert & {
+  upvotes: number;
+  downvotes: number;
+  createdBy: string;
+  timestamp: string;
+  duration: string;
   photo: any;
+  latitude: number;
+  longitude: number;
 };
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
@@ -37,7 +45,7 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
 
-  // Alerts
+  // Estados
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -45,18 +53,25 @@ const MapScreen: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [newType, setNewType] = useState('');
 
-  const handleAddAlert = (alert: { title: string; description: string; type: string }) => {
-    // mudar para adicionar no backend
-    console.log('Novo alerta:', alert);
-    console.log(`Localização: ${origin.latitude}, ${origin.longitude}`);
-  
-    setAddModalVisible(false);
-    setNewTitle('');
-    setNewDescription('');
-    setNewType('');
+  const [allAllerts, setAlerts] = useState(alerts);
+
+  const addAlert = (newAlert: NewAlert) => {
+    const fullAlert: AlertType = {
+      ...newAlert,
+      upvotes: 0,
+      downvotes: 0,
+      createdBy: 'Usuário', // pode ajustar se tiver login
+      timestamp: new Date().toISOString(),
+      duration: 'Permanente',
+      photo: require('../assets/images/alert.png'),
+      latitude: origin.latitude,
+      longitude: origin.longitude,
+    };
+    setAlerts([...allAllerts, fullAlert]);
+    console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
   };
   
-
+  
   // MapView
   const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
   useLocation(setOrigin);
@@ -175,7 +190,7 @@ const MapScreen: React.FC = () => {
         onRegionChangeComplete={onRegionChange}
         ref={mapRef}
       >
-        {alerts.map((alert, index) => (
+        {allAllerts.map((alert, index) => (
           <Marker key={index} coordinate={alert} onPress={() => onAlertSelected(alert)}>
             <Image source={alert.photo} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
           </Marker>
@@ -233,7 +248,7 @@ const MapScreen: React.FC = () => {
         <AddAlertModal
           visible={addModalVisible}
           onClose={() => setAddModalVisible(false)}
-          onSubmit={handleAddAlert}
+          onSubmit={addAlert}
           title={newTitle}
           setTitle={setNewTitle}
           description={newDescription}

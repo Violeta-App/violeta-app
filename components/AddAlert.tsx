@@ -1,10 +1,17 @@
 import React from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
+
+type NewAlert = {
+    title: string;
+    description: string;
+    type: string;
+  };
+
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (alert: { title: string; description: string; type: string }) => void;
+  onSubmit: (alert: NewAlert) => void;
   title: string;
   setTitle: (value: string) => void;
   description: string;
@@ -60,7 +67,10 @@ const AddAlertModal: React.FC<Props> = ({
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: '#553D6E' }]}
-              onPress={() => onSubmit({ title, description, type })}
+              onPress={() => {
+                onSubmit({ title, description, type });
+                onClose(); 
+              }}
             >
               <Text style={[styles.buttonText, { color: '#fff' }]}>Salvar</Text>
             </TouchableOpacity>
