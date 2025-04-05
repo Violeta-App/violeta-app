@@ -9,10 +9,10 @@ const AlertModal = ({ visible, alert, onClose }: { visible: boolean, alert: any,
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Image source={alert.photo} style={styles.alertImage} />
-          <Text style={styles.alertTitle}>{alert.title}</Text>
-          <Text style={styles.alertDescription}>{alert.description}</Text>
-          <Text style={styles.alertType}>{`Tipo: ${alert.type}`}</Text>
+          <Image source={require("../assets/images/alert.png")} style={styles.alertImage} />
+          <Text style={styles.alertTitle}>{alert.titulo}</Text>
+          <Text style={styles.alertDescription}>{alert.descricao}</Text>
+          <Text style={styles.alertType}>{`Tipo: ${alert.tipo}`}</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Fechar</Text>
           </TouchableOpacity>

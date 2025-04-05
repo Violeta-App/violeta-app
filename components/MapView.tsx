@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, Dimensions, Image, Text, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
 import { alerts } from '../assets/alerts';
+import { fetchAlerts, createAlert, deleteAlert, fetchAlertById, Alerta  } from '../assets/alertas';
 import { Linking } from 'react-native';
 import AlertModal from "@/components/AlertModal"
 import useLocation from '../hooks/useLocation'; 
@@ -53,7 +54,17 @@ const MapScreen: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [newType, setNewType] = useState('');
 
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [allAllerts, setAlerts] = useState(alerts);
+
+  const loadAlertas = async () => {
+    const data = await fetchAlerts();
+    setAlertas(data);
+  };
+
+  useEffect(() => {
+    loadAlertas();
+  }, []);
 
   const addAlert = (newAlert: NewAlert) => {
     const fullAlert: AlertType = {
@@ -190,9 +201,9 @@ const MapScreen: React.FC = () => {
         onRegionChangeComplete={onRegionChange}
         ref={mapRef}
       >
-        {allAllerts.map((alert, index) => (
-          <Marker key={index} coordinate={alert} onPress={() => onAlertSelected(alert)}>
-            <Image source={alert.photo} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+        {alertas.map((alerta) => (
+          <Marker key={alerta.alerta_id} coordinate={alerta} onPress={() => onAlertSelected(alerta)}>
+            <Image source={require("../assets/images/alert.png")} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
           </Marker>
         ))}
 
@@ -279,3 +290,4 @@ const MapScreen: React.FC = () => {
 };
 
 export default MapScreen;
+
