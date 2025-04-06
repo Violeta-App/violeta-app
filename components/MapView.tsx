@@ -131,6 +131,11 @@ const MapScreen: React.FC = () => {
   const [segmentsColors, setSegmentsColors] = useState<string[]>([]);
 
   const [showActionButtons, setShowActionButtons] = useState(false);
+
+  const [routeReadyToRender, setRouteReadyToRender] = useState(false);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [shouldDrawRoute, setShouldDrawRoute] = useState(false);
+
   
 
   const onRegionChange = (region: Region) => {
@@ -147,47 +152,48 @@ const MapScreen: React.FC = () => {
   };
 
   // Route calculation
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    if (!originText || !destinationText) {
+      alert('Preencha origem e destino');
+      return;
+    }
+  
     Geocoder.init(GOOGLE_MAPS_APIKEY);
+    setIsCalculatingRoute(true);
+    setRouteCoordinates([]);
+    setSegmentsColors([]);
+    setShouldDrawRoute(false);
   
-    if (originText) {
-      Geocoder.from(originText)
-        .then((json) => {
-          const location = json.results[0].geometry.location;
-          const newOrigin = { latitude: location.lat, longitude: location.lng };
-          setOrigin(newOrigin);
-          setOriginString(originText);
+    try {
+      const [originRes, destinationRes] = await Promise.all([
+        Geocoder.from(originText),
+        Geocoder.from(destinationText),
+      ]);
   
-          // Recentraliza o mapa na origem
-          mapRef.current?.animateToRegion({
-            ...newOrigin,
-            latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA,
-          }, 1000); // duração da animação em ms
-        })
-        .catch((error) => console.warn(error));
-    } else {
-      alert('Adicione um ponto de partida');
-      return;
-    }
+      const originLoc = originRes.results[0].geometry.location;
+      const destinationLoc = destinationRes.results[0].geometry.location;
   
-    if (destinationText) {
-      Geocoder.from(destinationText)
-        .then((json) => {
-          const location = json.results[0].geometry.location;
-          setDestination({ latitude: location.lat, longitude: location.lng });
-          setDestinationString(destinationText);
-        })
-        .catch((error) => console.warn(error));
-    } else {
-      alert('Adicione um ponto de destino');
-      return;
-    }
+      setOrigin({ latitude: originLoc.lat, longitude: originLoc.lng });
+      setDestination({ latitude: destinationLoc.lat, longitude: destinationLoc.lng });
   
-    if (originText && destinationText) {
-      setIsRouteRequested(true);
+      setOriginString(originText);
+      setDestinationString(destinationText);
+  
+      mapRef.current?.animateToRegion({
+        latitude: originLoc.lat,
+        longitude: originLoc.lng,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
+      }, 1000);
+  
+      setIsRouteRequested(true); // Trigger MapViewDirections
+    } catch (error) {
+      console.warn("Erro na geocodificação:", error);
+      setIsCalculatingRoute(false);
     }
   };
+  
+  
   
   const handleResetRoute = () => {
     setOrigin({ latitude: 0, longitude: 0 });
@@ -253,8 +259,8 @@ const MapScreen: React.FC = () => {
   
 
   const getColorFromRisk = (risk: number): string => {
-    if (risk <= 20) return '#04724D'; // verde
-    if (risk <= 40) return '#FFD936'; // amarelo
+    if (risk <= 20) return '#66CDAA'; // verde
+    if (risk <= 40) return '#FFD55B'; // amarelo
     return '#CF5C36'; // vermelho
   };
 
@@ -313,26 +319,33 @@ const MapScreen: React.FC = () => {
             origin={originString}
             destination={destinationString}
             apikey={GOOGLE_MAPS_APIKEY}
-            strokeWidth={0} // Para não renderizar a rota
+            strokeWidth={0}
             splitWaypoints={true}
             precision="low"
             onStart={(params) => {
               console.log(`Started routing between "${params.origin}" and "${params.destination}"`);
             }}
-            onReady={handleRouteReady}
+            onReady={(result) => {
+              handleRouteReady(result); // Calcula risco e pinta os segmentos
+              setShouldDrawRoute(true); // Permite desenhar a rota
+              setIsCalculatingRoute(false);
+              setIsRouteRequested(false); // Evita múltiplas chamadas
+            }}
+            
             onError={(errorMessage) => {
               console.log('Error: ', errorMessage);
             }}
           />
         )}
 
+
         {/* Renderiza a rota gerada acima com cores diferentes para cada subsegmento */}
-        {isRouteRequested && routeCoordinates.length > 0 &&
+        {shouldDrawRoute && routeCoordinates.length > 0 &&
           routeCoordinates.map((_, index) => {
             if (index < routeCoordinates.length - 1) {
               const segment = [
-                routeCoordinates[index], 
-                routeCoordinates[index + 1]
+                routeCoordinates[index],
+                routeCoordinates[index + 1],
               ];
               return (
                 <Polyline
@@ -346,6 +359,7 @@ const MapScreen: React.FC = () => {
             return null;
           })
         }
+
       </MapView>
 
       {/* Alert Modal */}
