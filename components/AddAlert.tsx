@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 
 
 type NewAlert = {
@@ -33,6 +33,11 @@ const AddAlertModal: React.FC<Props> = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="slide">
+          <KeyboardAvoidingView
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    style={{ flex: 1 }}
+  >
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           <Text style={styles.label}>Título:</Text>
@@ -77,6 +82,8 @@ const AddAlertModal: React.FC<Props> = ({
           </View>
         </View>
       </View>
+      </ScrollView>
+  </KeyboardAvoidingView>
     </Modal>
   );
 };

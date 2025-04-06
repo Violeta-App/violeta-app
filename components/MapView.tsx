@@ -56,7 +56,7 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
-  const [alerts, setAlerts] = useState<OccType[]>([]);
+  const [alerts, setAlert] = useState<OccType[]>([]);
 
   useEffect(() => {
     fetch('https://violeta-be.onrender.com/occurrences')
@@ -72,7 +72,7 @@ const MapScreen: React.FC = () => {
           occurrence_score: item.occurrence_score,
           year: parseInt(item.date.substring(0, 4), 10),
         }));
-        setAlerts(mappedAlerts);
+        setAlert(mappedAlerts);
       })
       .catch((error) => {
         console.error('Erro ao buscar alertas:', error);
@@ -200,7 +200,7 @@ const MapScreen: React.FC = () => {
   };
 
     // Cálculo do risco de um ponto com base em todas as ocorrências 
-  const calculateRiskForPoint = (point: { latitude: number, longitude: number }, alerts: AlertType[]): number => {
+  const calculateRiskForPoint = (point: { latitude: number, longitude: number }, alerts: OccType[]): number => {
     let maxRisk = 0;
     let dist = 0; //for debug
     let lat = 0; //for debug
@@ -250,9 +250,6 @@ const MapScreen: React.FC = () => {
     Linking.openURL('tel:190');
   };
   
-  
-  const getSegmentColor = (): string => {
-    const colors = ['#CF5C36', '#04724D', '#FFD936'];
 
   const getColorFromRisk = (risk: number): string => {
     if (risk <= 20) return '#04724D'; // verde
@@ -288,12 +285,9 @@ const MapScreen: React.FC = () => {
     const routeAverageRisk = segmentCount > 0 ? totalRisk / segmentCount : 0;
     const safetyPercentual = 100 - routeAverageRisk;
     console.log('🚨 Segurança da rota:', safetyPercentual.toFixed(2),'%');
-    const colors = result.coordinates.map(() => getSegmentColor()); // Mapeia cada subsegmento da rota para uma cor
-    setSegmentsColors(colors);
 
     setShowActionButtons(true); 
   };
-  
 
   return (
     <View style={{ flex: 1 }}>
