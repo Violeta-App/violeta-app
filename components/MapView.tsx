@@ -67,7 +67,7 @@ const MapScreen: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newType, setNewType] = useState('');
-
+  const [currentRegion, setCurrentRegion] = useState<Region>();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [allAllerts, setAlerts] = useState(alerts);
 
@@ -120,19 +120,30 @@ const MapScreen: React.FC = () => {
     loadAlertas();
   }, []);
 
+  const onRegionChange = (region: Region) => {
+    console.log(region);
+    setCurrentRegion(region);
+  };
+
+  // ADICIONA NOVO ALERTA
   const addAlert = async (newAlert: NewAlert) => {
-    const fullAlert: AlertaInput = {
-      titulo: newAlert.title,
-      tipo: newAlert.type,
-      descricao: newAlert.description,
-      createdBy: 'Usuário', // pode ajustar se tiver login
-      imagem: '../assets/images/alert.png',
-      latitude: origin.latitude,
-      longitude: origin.longitude,
-    };
-    await createAlert(fullAlert)
-    await loadAlertas();
-    console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
+    if (!currentRegion) {
+      console.log("Região atual não definida. Alerta não será criado.");
+      return;
+    }else{
+      const fullAlert: AlertaInput = {
+        titulo: newAlert.title,
+        tipo: newAlert.type,
+        descricao: newAlert.description,
+        createdBy: 'Usuário', // pode ajustar se tiver login
+        imagem: '../assets/images/alert.png',
+        latitude: currentRegion.latitude,
+        longitude: currentRegion.longitude,
+      };
+      await createAlert(fullAlert)
+      await loadAlertas();
+      console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
+    }
   };
 
   const onAlertSelected = (alert: any) => {
@@ -338,6 +349,7 @@ const MapScreen: React.FC = () => {
         initialRegion={INITIAL_REGION}
         showsUserLocation={true}
         showsMyLocationButton={true}
+        onRegionChangeComplete={onRegionChange}
         ref={mapRef}
       >
         {alertas.map((alerta) => (
