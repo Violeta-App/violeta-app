@@ -29,6 +29,8 @@ export default function NewReportScreen() {
   const [geoData, setGeoData] = useState<any>(null);
   const [autoAddress, setAutoAddress] = useState('');
 
+  const userId = "14f936fb-5c27-4e29-bcba-65fedc69062f";
+
   const categories = Object.keys(causeWeights);
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export default function NewReportScreen() {
       const occurrence_score = (causeWeights[main_reason] || 10) + (victimSituationWeights[victim_situation] || 0);
 
       const payload = {
+        user_id: userId,
         occurrence_description: description,
         address: geoData.address || autoAddress || 'Endereço não identificado',
         region: geoData.region || '',
@@ -86,12 +89,10 @@ export default function NewReportScreen() {
         occurrence_score
       };
 
-      console.log('[ENVIO] Payload:', payload);
-
       const res = await fetch('https://violeta-be.onrender.com/occurrences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([payload]) // ← array obrigatório pela API
+        body: JSON.stringify([payload])
       });
 
       const responseText = await res.text();
