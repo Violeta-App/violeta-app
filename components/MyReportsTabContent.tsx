@@ -1,32 +1,32 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ReportCard } from './ReportCard';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { theme } from '@/app/_layout';
 
-const mockReports = [
-  {
-    occurrence_id: '1',
-    address: 'Rua das Flores, 123',
-    date: '2025-04-05',
-    time: '18:30',
-    main_reason: 'Assédio',
-    occurrence_description: 'Homem assediou mulher na parada de ônibus.',
-  },
-  {
-    occurrence_id: '2',
-    address: 'Avenida Central, 45',
-    date: '2025-04-04',
-    time: '20:10',
-    main_reason: 'Má Iluminação',
-    occurrence_description: 'Rua completamente escura, perigo para pedestres.',
-  },
-];
-
 export function MyReportsTabContent() {
-  const [userReports] = useState(mockReports);
+  const [userReports, setUserReports] = useState([]);
   const navigation = useNavigation();
+
+  const userId = "14f936fb-5c27-4e29-bcba-65fedc69062f"; // ID certo conforme imagem
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const res = await fetch('https://violeta-be.onrender.com/occurrences');
+        const data = await res.json();
+
+        // Verifique o campo user_id corretamente
+        const filtered = data.filter((item: any) => item.user_id === userId);
+        setUserReports(filtered);
+      } catch (error) {
+        console.error("Erro ao buscar relatos:", error);
+      }
+    };
+
+    fetchReports();
+  }, []);
 
   return (
     <View>
