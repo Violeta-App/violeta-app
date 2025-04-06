@@ -110,6 +110,7 @@ const MapScreen: React.FC = () => {
       longitude: origin.longitude,
     };
     await createAlert(fullAlert)
+    await loadAlertas();
     console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
   };
   
@@ -389,4 +390,3 @@ const MapScreen: React.FC = () => {
 };
 
 export default MapScreen;
-
