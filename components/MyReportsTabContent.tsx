@@ -9,7 +9,7 @@ export function MyReportsTabContent() {
   const [userReports, setUserReports] = useState([]);
   const navigation = useNavigation();
 
-  const userId = "14f936fb-5c27-4e29-bcba-65fedc69062f"; // ID certo conforme imagem
+  const userId = "14f936fb-5c27-4e29-bcba-65fedc69062f";
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -17,7 +17,6 @@ export function MyReportsTabContent() {
         const res = await fetch('https://violeta-be.onrender.com/occurrences');
         const data = await res.json();
 
-        // Verifique o campo user_id corretamente
         const filtered = data.filter((item: any) => item.user_id === userId);
         setUserReports(filtered);
       } catch (error) {

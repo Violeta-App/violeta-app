@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: theme.colors.white,
-    paddingBottom: 60,
+    paddingBottom: 100,
   },
   backButton: {
     flexDirection: 'row',

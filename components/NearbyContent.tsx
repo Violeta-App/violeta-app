@@ -147,6 +147,7 @@ export function NearbyContent() {
               return (
                 <LocationCard
                   key={place.id}
+                  id={place.id}
                   title={place.name}
                   rating={place.rating?.toFixed(1) || '4.0'}
                   distance={`${place.distance.toFixed(1)} km`}

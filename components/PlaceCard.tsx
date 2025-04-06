@@ -30,6 +30,21 @@ const diaSemanaPt: Record<string, string> = {
   saturday: 'Sábado',
 };
 
+function formatOpeningHours(input?: string): string {
+
+  if (!input || input.trim() === '') return 'Fechado';
+
+  const normalized = input.trim().replace(/[\u2013\u2014–]/g, '-');
+  const parts = normalized.split('-').map((part) => part.trim());
+
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    const result = `Abre às ${parts[0]} · Fecha às ${parts[1]}`;
+    return result;
+  }
+
+  return 'Fechado';
+}
+
 export function PlaceCard({
   title,
   address,
@@ -40,18 +55,6 @@ export function PlaceCard({
   const dayIndex = new Date().getDay();
   const diasSemana = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const today = diasSemana[dayIndex];
-
-  const displayHours = (input?: string) => {
-    if (typeof input !== 'string') return 'Fechado';
-
-    const trimmed = input.trim();
-
-    if (trimmed === '') return 'Fechado';
-
-    const normalized = trimmed.replace(/[\u2013\u2014]/g, '-');
-
-    return normalized;
-  };
 
   return (
     <View style={styles.card}>
@@ -96,7 +99,7 @@ export function PlaceCard({
                   today === day && styles.highlightedText,
                 ]}
               >
-                {displayHours(hours)}
+                {formatOpeningHours(hours)}
               </Text>
             </View>
           ))}
@@ -108,8 +111,7 @@ export function PlaceCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.beige,
-    borderRadius: 16,
+    backgroundColor: theme.colors.softPurple,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',

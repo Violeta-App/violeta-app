@@ -29,7 +29,6 @@ export default function LocationDetailsScreen() {
   const [occurrences, setOccurrences] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Buscar dados completos do local por ID
   useEffect(() => {
     if (!id) return;
 
@@ -39,7 +38,6 @@ export default function LocationDetailsScreen() {
       .catch(console.error);
   }, [id]);
 
-  // Buscar relatos próximos
   useEffect(() => {
     fetch('https://violeta-be.onrender.com/occurrences')
       .then((res) => res.json())
@@ -77,6 +75,7 @@ export default function LocationDetailsScreen() {
     return date.toLocaleDateString('pt-BR');
   };
 
+  // 🔧 Prepara todos os dias da semana para o PlaceCard
   const openingHours = {
     sunday: safePlace?.sunday ?? '',
     monday: safePlace?.monday ?? '',
@@ -160,7 +159,7 @@ const styles = StyleSheet.create({
   },
   reportsSection: {
     marginTop: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
   },
   sectionHeader: {
     justifyContent: 'center',

@@ -60,13 +60,13 @@ export function LocationCard({
 
   const statusLabel =
     !horario_abertura || !horario_fechamento
-      ? 'Horário não informado'
+      ? 'Fechado hoje'
       : openStatus
       ? `Aberto agora · Fecha às ${horario_fechamento}`
       : `Fechado agora · Abre às ${horario_abertura}`;
 
   const statusColor = !horario_abertura || !horario_fechamento
-    ? theme.colors.darkGray
+    ? 'red'
     : openStatus
     ? 'green'
     : 'red';
@@ -77,7 +77,7 @@ export function LocationCard({
         router.push({
           pathname: 'location-details',
           params: {
-            id, // agora passamos o id para buscar dados completos
+            id,
             name: title,
             rating: formattedRating,
             category,
