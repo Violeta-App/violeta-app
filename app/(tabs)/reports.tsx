@@ -1,12 +1,19 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FilterTabs } from '@/components/FilterTabs';
 import { theme } from '../_layout';
 import { CommunityTabContent } from '@/components/CommunityTabContent';
 import { MyReportsTabContent } from '@/components/MyReportsTabContent';
+import { useFocusEffect } from 'expo-router';
 
 export default function ReportsScreen() {
   const [activeTab, setActiveTab] = useState('community');
+    useFocusEffect(
+      useCallback(() => {
+        setActiveTab('community');
+      }, [])
+    );
+
 
   return (
     <View style={styles.container}>

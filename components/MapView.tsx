@@ -359,7 +359,7 @@ const MapScreen: React.FC = () => {
                   key={`segment-${index}`}
                   coordinates={segment}
                   strokeColor={segmentsColors[index]}
-                  strokeWidth={4}
+                  strokeWidth={6}
                 />
               );
             }

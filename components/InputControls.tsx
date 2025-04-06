@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     zIndex: 10,
     margin: 20,
+    marginTop: 32,
   },
   input: {
     height: 40,
