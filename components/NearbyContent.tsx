@@ -3,21 +3,14 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import * as Location from 'expo-location';
 import { ReportCard } from './ReportCard';
 import { LocationCard } from './LocationCard';
-import { SearchBarLocal } from './SearchBarLocal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '@/app/_layout';
 
 export function NearbyContent() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentCoords, setCurrentCoords] = useState(null);
   const [occurrences, setOccurrences] = useState([]);
+  const [safePlaces, setSafePlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const places = [
-    { title: "Hamburgueria do seu Zé", rating: "4.4", distance: "0.7 km", category: "Gastronomia" },
-    { title: "Feirinha na Laje", rating: "4.4", distance: "0.7 km", category: "Eventos" },
-    { title: "Biblioteca Municipal", rating: "4.8", distance: "1.2 km", category: "Cultura" },
-  ];
 
   useEffect(() => {
     (async () => {
@@ -31,14 +24,20 @@ export function NearbyContent() {
 
   useEffect(() => {
     if (!currentCoords) return;
-    fetchOccurrences();
+    fetchData();
   }, [currentCoords]);
 
-  const fetchOccurrences = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('https://violeta-be.onrender.com/occurrences');
-      const data = await response.json();
-      const sorted = data
+      const [occurrencesRes, safePlacesRes] = await Promise.all([
+        fetch('https://violeta-be.onrender.com/occurrences'),
+        fetch('https://violeta-be.onrender.com/locais_seguros'),
+      ]);
+
+      const occurrencesData = await occurrencesRes.json();
+      const safePlacesData = await safePlacesRes.json();
+
+      const enrichedOccurrences = occurrencesData
         .map((item) => ({
           ...item,
           distance: getDistance(
@@ -50,9 +49,24 @@ export function NearbyContent() {
         }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 5);
-      setOccurrences(sorted);
+
+      const enrichedSafePlaces = safePlacesData
+        .map((place) => ({
+          ...place,
+          distance: getDistance(
+            currentCoords.latitude,
+            currentCoords.longitude,
+            place.latitude,
+            place.longitude
+          ),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5);
+
+      setOccurrences(enrichedOccurrences);
+      setSafePlaces(enrichedSafePlaces);
     } catch (err) {
-      console.error('Erro ao carregar relatos:', err);
+      console.error('Erro ao carregar dados:', err);
     } finally {
       setLoading(false);
     }
@@ -76,21 +90,27 @@ export function NearbyContent() {
     return date.toLocaleDateString('pt-BR');
   };
 
-  const searchLower = searchQuery.toLowerCase();
+  const getOpeningHour = (place) => {
+    const days = [
+      'sunday', 'monday', 'tuesday', 'wednesday',
+      'thursday', 'friday', 'saturday'
+    ];
+    const today = new Date().getDay(); // 0 = domingo, 1 = segunda, etc.
+    const horariosHoje = place?.[days[today]];
 
-  const filteredOccurrences = occurrences.filter((item) =>
-    item.address.toLowerCase().includes(searchLower) ||
-    item.main_reason.toLowerCase().includes(searchLower)
-  );
+    if (!horariosHoje || typeof horariosHoje !== 'string') return null;
 
-  const filteredPlaces = places.filter(place =>
-    place.title.toLowerCase().includes(searchLower) ||
-    place.category.toLowerCase().includes(searchLower)
-  );
+    // Corrigir todos os tipos de travessão para hífen simples
+    const normalized = horariosHoje.replace(/[–—]/g, '-');
+    const parts = normalized.split('-');
+    if (parts.length !== 2) return null;
+
+    const [abertura, fechamento] = parts.map((p) => p.trim());
+    return { abertura, fechamento };
+  };
 
   return (
     <View style={styles.wrapper}>
-
       <View style={styles.sectionReports}>
         <View style={styles.header}>
           <FontAwesome5 name="exclamation-triangle" size={16} color={theme.colors.black} />
@@ -99,8 +119,8 @@ export function NearbyContent() {
         <ScrollView style={styles.scrollArea} contentContainerStyle={{ gap: 1 }}>
           {loading ? (
             <ActivityIndicator size="large" color={theme.colors.lightPurple} />
-          ) : (
-            filteredOccurrences.map((item) => (
+          ) : occurrences.length > 0 ? (
+            occurrences.map((item) => (
               <ReportCard
                 key={item.occurrence_id}
                 location={item.address}
@@ -109,6 +129,8 @@ export function NearbyContent() {
                 description={item.occurrence_description}
               />
             ))
+          ) : (
+            <Text style={styles.noResults}>Nenhum relato encontrado</Text>
           )}
         </ScrollView>
       </View>
@@ -116,21 +138,29 @@ export function NearbyContent() {
       <View style={styles.section}>
         <View style={styles.header}>
           <FontAwesome5 name="map-marker-alt" size={16} color={theme.colors.black} />
-          <Text style={styles.title}>Lugares próximos à você</Text>
+          <Text style={styles.title}>Locais seguros próximos à você</Text>
         </View>
-        <ScrollView style={styles.scrollArea} contentContainerStyle={{ gap: 1, maxHeight: 250 }}>
-          {filteredPlaces.length > 0 ? (
-            filteredPlaces.map((place, index) => (
-              <LocationCard
-                key={index}
-                title={place.title}
-                rating={place.rating}
-                distance={place.distance}
-                category={place.category}
-              />
-            ))
+        <ScrollView style={styles.scrollArea} contentContainerStyle={{ gap: 1 }}>
+          {safePlaces.length > 0 ? (
+            safePlaces.map((place) => {
+              const horarios = getOpeningHour(place);
+              return (
+                <LocationCard
+                  key={place.id}
+                  title={place.name}
+                  rating={place.rating?.toFixed(1) || '4.0'}
+                  distance={`${place.distance.toFixed(1)} km`}
+                  category={place.tipo}
+                  horario_abertura={horarios?.abertura}
+                  horario_fechamento={horarios?.fechamento}
+                  address={place.address}
+                  latitude={place.latitude}
+                  longitude={place.longitude}
+                />
+              );
+            })
           ) : (
-            <Text style={styles.noResults}>Nenhum local encontrado</Text>
+            <Text style={styles.noResults}>Nenhum local seguro encontrado</Text>
           )}
         </ScrollView>
       </View>

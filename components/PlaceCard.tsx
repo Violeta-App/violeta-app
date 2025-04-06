@@ -1,104 +1,157 @@
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '../app/_layout';
+
+interface OpeningHours {
+  sunday?: string;
+  monday?: string;
+  tuesday?: string;
+  wednesday?: string;
+  thursday?: string;
+  friday?: string;
+  saturday?: string;
+}
 
 interface PlaceCardProps {
   title: string;
   address: string;
   rating: number;
   category: string;
-  imageUrl: string;
+  openingHours?: OpeningHours;
 }
 
-export function PlaceCard({ title, address, rating, category, imageUrl }: PlaceCardProps) {
+const diaSemanaPt: Record<string, string> = {
+  sunday: 'Domingo',
+  monday: 'Segunda',
+  tuesday: 'Terça',
+  wednesday: 'Quarta',
+  thursday: 'Quinta',
+  friday: 'Sexta',
+  saturday: 'Sábado',
+};
+
+export function PlaceCard({
+  title,
+  address,
+  rating,
+  category,
+  openingHours,
+}: PlaceCardProps) {
+  const dayIndex = new Date().getDay();
+  const diasSemana = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = diasSemana[dayIndex];
+
+  const displayHours = (input?: string) => {
+    if (typeof input !== 'string') return 'Fechado';
+
+    const trimmed = input.trim();
+
+    if (trimmed === '') return 'Fechado';
+
+    const normalized = trimmed.replace(/[\u2013\u2014]/g, '-');
+
+    return normalized;
+  };
+
   return (
     <View style={styles.card}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-        <View style={styles.overlay}>
-          <Text style={styles.title}>{title}</Text>
-        </View>
-        <View style={styles.addressContainer}>
-          <Text style={styles.address}>{address}</Text>
-          <FontAwesome5 name="map-marker-alt" size={12} color={theme.colors.white} />
-        </View>
+      <Text style={styles.title}>{title}</Text>
+
+      <View style={styles.addressContainer}>
+        <FontAwesome5 name="map-marker-alt" size={14} color={theme.colors.primaryPurple} />
+        <Text style={styles.address}>{address}</Text>
       </View>
-      <View style={styles.infoContainer}>
-        <View style={styles.ratingContainer}>
-          <Text style={styles.rating}>★ {rating}</Text>
+
+      <View style={styles.infoRow}>
+        <View style={styles.leftInfo}>
+          <Text style={styles.rating}>★ {rating.toFixed(1)}</Text>
           <View style={styles.categoryTag}>
             <Text style={styles.categoryText}>{category}</Text>
           </View>
         </View>
-        {/*
-        <View style={styles.actions}>
-          <FontAwesome5 name="heart" size={18} color={theme.colors.primaryPurple} />
-          <FontAwesome5 name="comment-alt" size={18} color={theme.colors.primaryPurple} style={styles.commentIcon} />  
-        </View>
-        */}
       </View>
+
+      {openingHours && (
+        <View style={styles.hoursContainer}>
+          <Text style={styles.sectionTitle}>Horários de funcionamento</Text>
+          {Object.entries(openingHours).map(([day, hours]) => (
+            <View
+              key={day}
+              style={[
+                styles.hourItem,
+                today === day && styles.highlightedDay,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.dayText,
+                  today === day && styles.highlightedText,
+                ]}
+              >
+                {diaSemanaPt[day]}:
+              </Text>
+              <Text
+                style={[
+                  styles.hourText,
+                  today === day && styles.highlightedText,
+                ]}
+              >
+                {displayHours(hours)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  imageContainer: {
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: 180,
-  },
-  overlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 8,
+    backgroundColor: theme.colors.beige,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: theme.fonts.ibmPlexSans,
     fontWeight: 'bold',
-    color: theme.colors.white,
+    color: theme.colors.black,
+    marginBottom: 4,
   },
   addressContainer: {
-    position: 'absolute',
-    bottom: 6,
-    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
   },
   address: {
     fontSize: 14,
     fontFamily: theme.fonts.ibmPlexSans,
-    color: theme.colors.white,
-    marginRight: 4,
+    color: theme.colors.darkerGray,
   },
-  infoContainer: {
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: theme.colors.softPurple,
+    marginBottom: 10,
   },
-  ratingContainer: {
+  leftInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   rating: {
     fontSize: 14,
-    fontFamily: theme.fonts.ibmPlexSans,
     fontWeight: 'bold',
     color: theme.colors.black,
-    marginRight: 8,
+    fontFamily: theme.fonts.ibmPlexSans,
   },
   categoryTag: {
     backgroundColor: theme.colors.primaryPurple,
@@ -112,11 +165,41 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontWeight: 'bold',
   },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  hoursContainer: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.lightPurple,
+    paddingTop: 10,
+    marginTop: 10,
   },
-  commentIcon: {
-    marginLeft: 12,
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: theme.fonts.ibmPlexSans,
+    marginBottom: 6,
+    color: theme.colors.black,
+  },
+  hourItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  dayText: {
+    fontSize: 13,
+    color: theme.colors.black,
+    fontFamily: theme.fonts.ibmPlexSans,
+  },
+  hourText: {
+    fontSize: 13,
+    fontFamily: theme.fonts.ibmPlexSans,
+    color: theme.colors.black,
+  },
+  highlightedDay: {
+    backgroundColor: '#f0eaff',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+  },
+  highlightedText: {
+    fontWeight: 'bold',
+    color: theme.colors.primaryPurple,
   },
 });
