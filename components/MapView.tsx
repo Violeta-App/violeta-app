@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity, TextInput } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
+import MapViewAlternativeDirections from '../utils/MapViewAlternativeDirections'
 import Geocoder from 'react-native-geocoding';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { alerts } from '../assets/alerts';
@@ -49,6 +50,7 @@ const MapScreen: React.FC = () => {
   const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
   const [isRouteRequested, setIsRouteRequested] = useState(false);
   const [segmentsColors, setSegmentsColors] = useState<string[]>([]);
+  const [alternativeRoutes, setAlternativeRoutes] = useState<any[]>([]);
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
@@ -151,10 +153,15 @@ const MapScreen: React.FC = () => {
   };
 
   const handleRouteReady = (result: any) => {
-    setRouteCoordinates(result.coordinates); // Retorna as coordenadas que formam a rota gerada automaticamente pelo MapViewDirections
+    // ROTA PRINCIPAL
+    setRouteCoordinates(result[0].coordinates); // Retorna as coordenadas que formam a rota gerada automaticamente pelo MapViewDirections
 
-    const colors = result.coordinates.map(() => getSegmentColor()); // Mapeia cada subsegmento da rota para uma cor
+    const colors = result[0].coordinates.map(() => getSegmentColor()); // Mapeia cada subsegmento da rota para uma cor
     setSegmentsColors(colors);
+
+    // ROTAS ALTERNATIVAS
+    const alternativeRoutes = result.map((route: any) => route.coordinates);
+    setAlternativeRoutes(alternativeRoutes);
   };
 
   return (
@@ -176,22 +183,45 @@ const MapScreen: React.FC = () => {
 
         {/* Calcula a rota entre dois pontos automaticamente */}
         {isRouteRequested && originString !== "" && destinationString !== "" && (
-          <MapViewDirections
+          <MapViewAlternativeDirections
             origin={originString}
             destination={destinationString}
             apikey={GOOGLE_MAPS_APIKEY}
             strokeWidth={0} // Para não renderizar a rota
             splitWaypoints={true}
             precision="low"
-            onStart={(params) => {
+            onStart={(params: any) => {
               console.log(`Started routing between "${params.origin}" and "${params.destination}"`);
             }}
             onReady={handleRouteReady}
-            onError={(errorMessage) => {
+            onError={(errorMessage: Error) => {
               console.log('Error: ', errorMessage);
             }}
           />
         )}
+
+        {/* Renderiza as rotas alternativas em cinza */}
+        {isRouteRequested && alternativeRoutes.length > 0 &&
+          alternativeRoutes.map((alternativeRoute, routeIndex) => (
+            alternativeRoute.map((_: any, segmentIndex: any) => {
+              if (segmentIndex < alternativeRoute.length - 1) {
+                const segment = [
+                  alternativeRoute[segmentIndex], 
+                  alternativeRoute[segmentIndex + 1]
+                ];
+                return (
+                  <Polyline
+                    key={`alternative-segment-${routeIndex}-${segmentIndex}`}
+                    coordinates={segment}
+                    strokeColor="#202020"  // Cor cinza para as rotas alternativas
+                    strokeWidth={3}
+                  />
+                );
+              }
+              return null;
+            })
+          ))
+        }
 
         {/* Renderiza a rota gerada acima com cores diferentes para cada subsegmento */}
         {isRouteRequested && routeCoordinates.length > 0 &&
