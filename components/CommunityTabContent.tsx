@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import * as Location from 'expo-location';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { ReportCard } from './ReportCard';
@@ -93,6 +99,12 @@ export function CommunityTabContent() {
       place.tipo.toLowerCase().includes(searchLower)
     );
 
+  const dayKeys = [
+    'sunday', 'monday', 'tuesday', 'wednesday',
+    'thursday', 'friday', 'saturday'
+  ];
+  const todayKey = dayKeys[new Date().getDay()];
+
   return (
     <ScrollView style={{ paddingBottom: 40 }}>
       <View style={styles.locationContainer}>
@@ -127,24 +139,29 @@ export function CommunityTabContent() {
 
           <Text style={[styles.sectionHeader, { marginTop: 24 }]}>Lugares</Text>
           {filteredPlaces.length > 0 ? (
-            filteredPlaces.map((place, index) => (
-              <LocationCard
-                key={place.id || index}
-                title={place.name}
-                rating={place.rating?.toFixed(1) || '4.0'}
-                distance={place.distance ? `${place.distance.toFixed(1)} km` : '—'}
-                category={place.tipo}
-                openingHours={{
-                  sunday: place.sunday,
-                  monday: place.monday,
-                  tuesday: place.tuesday,
-                  wednesday: place.wednesday,
-                  thursday: place.thursday,
-                  friday: place.friday,
-                  saturday: place.saturday,
-                }}
-              />
-            ))
+            filteredPlaces.map((place, index) => {
+              const horarioHoje = place[todayKey] || '';
+              const [aberturaHoje, fechamentoHoje] = horarioHoje
+                .replace(/[\u2013\u2014–]/g, '-')
+                .split('-')
+                .map((h) => h?.trim());
+
+              return (
+                <LocationCard
+                  key={place.id || index}
+                  id={place.id}
+                  title={place.name}
+                  rating={place.rating?.toFixed(1) || '4.0'}
+                  distance={place.distance ? `${place.distance.toFixed(1)} km` : '—'}
+                  category={place.tipo}
+                  horario_abertura={aberturaHoje}
+                  horario_fechamento={fechamentoHoje}
+                  address={place.address}
+                  latitude={place.latitude}
+                  longitude={place.longitude}
+                />
+              );
+            })
           ) : (
             <Text style={styles.noResults}>Nenhum local encontrado.</Text>
           )}
@@ -163,12 +180,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginBottom: 16,
     marginTop: 10,
-    marginHorizontal: 16,
   },
   locationText: {
     color: '#674188',
     fontSize: 12,
-    width: '95%',
+    width: '95%'
   },
   sectionHeader: {
     fontSize: 16,
