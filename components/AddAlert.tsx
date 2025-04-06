@@ -64,9 +64,16 @@ const AddAlertModal: React.FC<Props> = ({
             placeholder="Ex: Perigo, Trânsito, Outro"
             style={styles.input}
           />
-
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.button} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                setTitle('');
+                setDescription('');
+                setType('');
+                onClose();
+              }}
+            >
               <Text style={styles.buttonText}>Cancelar</Text>
             </TouchableOpacity>
 
@@ -74,6 +81,9 @@ const AddAlertModal: React.FC<Props> = ({
               style={[styles.button, { backgroundColor: '#553D6E' }]}
               onPress={() => {
                 onSubmit({ title, description, type });
+                setTitle('');
+                setDescription('');
+                setType('');
                 onClose(); 
               }}
             >
