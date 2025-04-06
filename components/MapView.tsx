@@ -1,10 +1,16 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, Dimensions, Image, Alert, Text, Modal, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, View, Dimensions, Image, Text, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geocoder from 'react-native-geocoding';
-import { PermissionsAndroid, Platform } from 'react-native';
-//import { alerts } from '../assets/alerts';
+import { alerts } from '../assets/alerts';
+import { fetchAlerts, createAlert, deleteAlert, fetchAlertById, Alerta, AlertaInput  } from '../assets/alertas';
+import { Linking } from 'react-native';
+import AlertModal from "@/components/AlertModal"
+import useLocation from '../hooks/useLocation'; 
+import InputControls from '@/components/InputControls';
+import RouteButtons from '@/components/RouteButtons';
+import AddAlertModal from '@/components/AddAlert';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -18,7 +24,24 @@ const INITIAL_REGION = {
   longitudeDelta: LONGITUDE_DELTA,
 };
 
-type AlertType = {
+type NewAlert = {
+  title: string;
+  description: string;
+  type: string;
+};
+
+type AlertType = NewAlert & {
+  upvotes: number;
+  downvotes: number;
+  createdBy: string;
+  timestamp: string;
+  duration: string;
+  photo: any;
+  latitude: number;
+  longitude: number;
+};
+
+type OccType = {
   latitude: number;
   longitude: number;
   title: string;
@@ -33,12 +56,7 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
-
-
-  // Alert
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
-  const [alerts, setAlerts] = useState<AlertType[]>([]);
+  const [alerts, setAlerts] = useState<OccType[]>([]);
 
   useEffect(() => {
     fetch('https://violeta-be.onrender.com/occurrences')
@@ -61,10 +79,48 @@ const MapScreen: React.FC = () => {
       });
   }, []);
 
+  // Estados
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newType, setNewType] = useState('');
 
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [allAllerts, setAlerts] = useState(alerts);
+
+  const loadAlertas = async () => {
+    const data = await fetchAlerts();
+    setAlertas(data);
+  };
+
+  useEffect(() => {
+    loadAlertas();
+  }, []);
+
+  const addAlert = async (newAlert: NewAlert) => {
+    const fullAlert: AlertaInput = {
+      titulo: newAlert.title,
+      tipo: newAlert.type,
+      descricao: newAlert.description,
+      createdBy: 'Usuário', // pode ajustar se tiver login
+      imagem: '../assets/images/alert.png',
+      latitude: origin.latitude,
+      longitude: origin.longitude,
+    };
+    await createAlert(fullAlert)
+    console.log('Novo alerta adicionado:', JSON.stringify(fullAlert, null, 2));
+  };
+  
+  
   // MapView
   const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
+  useLocation(setOrigin);
   const [destination, setDestination] = useState({ latitude: 0, longitude: 0 });
+
+  const [originString, setOriginString] = useState('');
+  const [destinationString, setDestinationString] = useState('');
 
   // Routes
   const [originText, setOriginText] = useState('');
@@ -73,51 +129,8 @@ const MapScreen: React.FC = () => {
   const [isRouteRequested, setIsRouteRequested] = useState(false);
   const [segmentsColors, setSegmentsColors] = useState<string[]>([]);
 
-  const requestLocationPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Permissão para acessar a localização',
-            message: 'Este app precisa da sua localização para funcionar corretamente.',
-            buttonNeutral: 'Perguntar depois',
-            buttonNegative: 'Cancelar',
-            buttonPositive: 'OK',
-          }
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('Permissão concedida');
-          getUserLocation();
-        } else {
-          Alert.alert('Permissão negada', 'A localização é necessária para usar esta funcionalidade.');
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-    }
-    if (Platform.OS === 'ios') {
-      // Code specific to iOS platform
-    }
-  };
-
-  // Requesting location permission
-  useEffect(() => {
-    requestLocationPermission();
-  }, []);
+  const [showActionButtons, setShowActionButtons] = useState(false);
   
-  const getUserLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setOrigin({ latitude, longitude });
-      },
-      (error) => {
-        console.log(error);
-      },
-      { enableHighAccuracy: true, timeout: 2000, maximumAge: 1000 }
-    );
-  };
 
   const onRegionChange = (region: Region) => {
     //console.log(region);
@@ -134,33 +147,56 @@ const MapScreen: React.FC = () => {
 
   // Route calculation
   const handleSearch = () => {
+    Geocoder.init(GOOGLE_MAPS_APIKEY);
+  
     if (originText) {
-      Geocoder.init(GOOGLE_MAPS_APIKEY);
       Geocoder.from(originText)
         .then((json) => {
           const location = json.results[0].geometry.location;
-          setOrigin({ latitude: location.lat, longitude: location.lng });
+          const newOrigin = { latitude: location.lat, longitude: location.lng };
+          setOrigin(newOrigin);
+          setOriginString(originText);
+  
+          // Recentraliza o mapa na origem
+          mapRef.current?.animateToRegion({
+            ...newOrigin,
+            latitudeDelta: LATITUDE_DELTA,
+            longitudeDelta: LONGITUDE_DELTA,
+          }, 1000); // duração da animação em ms
         })
         .catch((error) => console.warn(error));
     } else {
-      alert('Please enter an origin address');
+      alert('Adicione um ponto de partida');
+      return;
     }
-
+  
     if (destinationText) {
-      Geocoder.init(GOOGLE_MAPS_APIKEY);
       Geocoder.from(destinationText)
         .then((json) => {
           const location = json.results[0].geometry.location;
           setDestination({ latitude: location.lat, longitude: location.lng });
+          setDestinationString(destinationText);
         })
         .catch((error) => console.warn(error));
     } else {
-      alert('Please enter a destination address');
+      alert('Adicione um ponto de destino');
+      return;
     }
-
+  
     if (originText && destinationText) {
-      setIsRouteRequested(true)
+      setIsRouteRequested(true);
     }
+  };
+  
+  const handleResetRoute = () => {
+    setOrigin({ latitude: 0, longitude: 0 });
+    setDestination({ latitude: 0, longitude: 0 });
+    setOriginText('');
+    setDestinationText('');
+    setRouteCoordinates([]);
+    setSegmentsColors([]);
+    setIsRouteRequested(false);
+    setShowActionButtons(false);
   };
 
     // Cálculo do risco de um ponto com base em todas as ocorrências 
@@ -210,6 +246,14 @@ const MapScreen: React.FC = () => {
   };
 
 
+  const callPolice = () => {
+    Linking.openURL('tel:190');
+  };
+  
+  
+  const getSegmentColor = (): string => {
+    const colors = ['#CF5C36', '#04724D', '#FFD936'];
+
   const getColorFromRisk = (risk: number): string => {
     if (risk <= 20) return '#04724D'; // verde
     if (risk <= 40) return '#FFD936'; // amarelo
@@ -244,6 +288,10 @@ const MapScreen: React.FC = () => {
     const routeAverageRisk = segmentCount > 0 ? totalRisk / segmentCount : 0;
     const safetyPercentual = 100 - routeAverageRisk;
     console.log('🚨 Segurança da rota:', safetyPercentual.toFixed(2),'%');
+    const colors = result.coordinates.map(() => getSegmentColor()); // Mapeia cada subsegmento da rota para uma cor
+    setSegmentsColors(colors);
+
+    setShowActionButtons(true); 
   };
   
 
@@ -258,17 +306,17 @@ const MapScreen: React.FC = () => {
         onRegionChangeComplete={onRegionChange}
         ref={mapRef}
       >
-        {alerts.map((alert, index) => (
-          <Marker key={index} coordinate={alert} onPress={() => onAlertSelected(alert)}>
-            <Image source={alert.photo} style={{ width: 30, height: 30 }} />
+        {alertas.map((alerta) => (
+          <Marker key={alerta.alerta_id} coordinate={alerta} onPress={() => onAlertSelected(alerta)}>
+            <Image source={require("../assets/images/alert.png")} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
           </Marker>
         ))}
 
         {/* Calcula a rota entre dois pontos automaticamente */}
-        {isRouteRequested && origin.latitude !== 0 && destination.latitude !== 0 && (
+        {isRouteRequested && originString !== "" && destinationString !== "" && (
           <MapViewDirections
-            origin={origin}
-            destination={destination}
+            origin={originString}
+            destination={destinationString}
             apikey={GOOGLE_MAPS_APIKEY}
             strokeWidth={0} // Para não renderizar a rota
             splitWaypoints={true}
@@ -307,126 +355,44 @@ const MapScreen: React.FC = () => {
 
       {/* Alert Modal */}
       {selectedAlert && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={isModalVisible}
-          onRequestClose={closeModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Image source={selectedAlert.photo} style={styles.alertImage} />
-              <Text style={styles.alertTitle}>{selectedAlert.title}</Text>
-              <Text style={styles.alertDescription}>{selectedAlert.description}</Text>
-              <Text style={styles.alertType}>{`Tipo: ${selectedAlert.type}`}</Text>
-              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                <Text style={styles.closeButtonText}>Fechar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <AlertModal 
+        visible={isModalVisible} 
+        alert={selectedAlert} 
+        onClose={closeModal} 
+      />
       )}
-
+        <AddAlertModal
+          visible={addModalVisible}
+          onClose={() => setAddModalVisible(false)}
+          onSubmit={addAlert}
+          title={newTitle}
+          setTitle={setNewTitle}
+          description={newDescription}
+          setDescription={setNewDescription}
+          type={newType}
+          setType={setNewType}
+        />
       {/* Inputs de Origem e Destino */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          onChangeText={(text) => setOriginText(text)}
-          placeholder="Origem"
-          value={originText}
-        />
-        <TextInput
-          style={styles.input}
-          onChangeText={(text) => setDestinationText(text)}
-          placeholder="Destino"
-          value={destinationText}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleSearch}>
-          <Text style={styles.buttonText}>Buscar Rota</Text>
-        </TouchableOpacity>
-      </View>
+      {!showActionButtons ? (
+      <InputControls
+      originText={originText}
+      destinationText={destinationText}
+      onChangeOrigin={setOriginText}
+      onChangeDestination={setDestinationText}
+      onSearchPress={handleSearch}
+    />
+    
+) : (
+      <RouteButtons
+        destinationText={destinationText}
+        onResetRoute={handleResetRoute}
+        onCallPolice={callPolice}
+        setAddModalVisible={setAddModalVisible}
+      />
+)}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  alertImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 15,
-  },
-  alertTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  alertDescription: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  alertType: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 15,
-  },
-  closeButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  inputContainer: {
-    position: 'absolute',
-    top: 30,
-    left: 20,
-    right: 20,
-    zIndex: 10,
-  },
-  input: {
-    height: 40,
-    backgroundColor: '#fff',
-    marginBottom: 10,
-    paddingLeft: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  button: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-  },
-});
-
 export default MapScreen;
+

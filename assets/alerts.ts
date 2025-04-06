@@ -1,4 +1,5 @@
 // Array de alertas em Recife
+
 export const alerts = [
     {
       latitude: -8.0476,
