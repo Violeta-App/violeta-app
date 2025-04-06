@@ -1,13 +1,91 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '../app/_layout';
-import { ReportComment } from '@/components/ReportComment';
+import { ReportCard } from '@/components/ReportCard';
 import { PlaceCard } from '@/components/PlaceCard';
 
 export default function LocationDetailsScreen() {
-  const { title } = useLocalSearchParams();
   const navigation = useNavigation();
+  const {
+    id = '',
+    name = '',
+    address = '',
+    rating = '0',
+    category = '',
+    latitude = '0',
+    longitude = '0',
+  } = useLocalSearchParams();
+
+  const [safePlace, setSafePlace] = useState<any>(null);
+  const [occurrences, setOccurrences] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar dados completos do local por ID
+  useEffect(() => {
+    if (!id) return;
+
+    fetch(`https://violeta-be.onrender.com/locais_seguros/${id}`)
+      .then((res) => res.json())
+      .then((data) => setSafePlace(data))
+      .catch(console.error);
+  }, [id]);
+
+  // Buscar relatos próximos
+  useEffect(() => {
+    fetch('https://violeta-be.onrender.com/occurrences')
+      .then((res) => res.json())
+      .then((data) => {
+        const nearby = data.filter((occ) => {
+          const dist = getDistance(
+            parseFloat(latitude.toString()),
+            parseFloat(longitude.toString()),
+            occ.latitude,
+            occ.longitude
+          );
+          return dist <= 1;
+        });
+        setOccurrences(nearby);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [latitude, longitude]);
+
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const openingHours = {
+    sunday: safePlace?.sunday ?? '',
+    monday: safePlace?.monday ?? '',
+    tuesday: safePlace?.tuesday ?? '',
+    wednesday: safePlace?.wednesday ?? '',
+    thursday: safePlace?.thursday ?? '',
+    friday: safePlace?.friday ?? '',
+    saturday: safePlace?.saturday ?? '',
+  };
 
   return (
     <>
@@ -15,33 +93,59 @@ export default function LocationDetailsScreen() {
         options={{
           title: '',
           headerStyle: { backgroundColor: theme.colors.white },
-          headerTitleStyle: { color: theme.colors.black, fontFamily: theme.fonts.ibmPlexSans },
+          headerTitleStyle: {
+            color: theme.colors.black,
+            fontFamily: theme.fonts.ibmPlexSans,
+          },
           headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <FontAwesome5 name="arrow-left" size={20} color={theme.colors.primaryPurple} />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <FontAwesome5
+                name="arrow-left"
+                size={20}
+                color={theme.colors.primaryPurple}
+              />
               <Text style={styles.backText}>Voltar</Text>
             </TouchableOpacity>
           ),
         }}
       />
+
       <ScrollView style={styles.container}>
-        {/* Chamando o PlaceCard aqui dentro */}
         <PlaceCard
-          title="Projeto Cafe Bar"
-          address="Rua do Luar, 10"
-          rating={4.4}
-          category="Gastronomia"
-          imageUrl="https://static.wikia.nocookie.net/club-penguin-land20/images/3/34/800px-Caf%C3%A92012.PNG/revision/latest?cb=20180726163757&path-prefix=pt-br"
+          title={safePlace?.name || name.toString()}
+          address={safePlace?.address || address.toString()}
+          rating={parseFloat(safePlace?.rating || rating.toString())}
+          category={safePlace?.tipo || category.toString()}
+          openingHours={openingHours}
         />
 
-        {/* Sessão de Relatos */}
         <View style={styles.reportsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.textHeader}>5 RELATOS</Text>
+            <Text style={styles.textHeader}>
+              {loading
+                ? 'Carregando relatos...'
+                : `${occurrences.length} Relato${occurrences.length !== 1 ? 's' : ''} próximo${occurrences.length !== 1 ? 's' : ''}`}
+            </Text>
           </View>
-          <ReportComment user="Lívia Bion" categories={["Pouco Policiamento", "Má Iluminação"]} timestamp="Jan 10, 2022 12:21 PM" />
-          <ReportComment user="Anônimo" categories={["Pouco Policiamento"]} timestamp="Jan 10, 2022 12:21 PM" />
-          <ReportComment user="Lívia Bion" categories={["Pouco Policiamento"]} timestamp="Jan 10, 2022 12:21 PM" />
+
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.colors.primaryPurple} />
+          ) : occurrences.length > 0 ? (
+            occurrences.map((relato) => (
+              <ReportCard
+                key={relato.occurrence_id}
+                location={relato.address}
+                timestamp={`${formatDate(relato.date)} ${relato.time}`}
+                category={relato.main_reason}
+                description={relato.occurrence_description}
+              />
+            ))
+          ) : (
+            <Text style={styles.noResults}>Nenhum relato encontrado próximo ao local.</Text>
+          )}
         </View>
       </ScrollView>
     </>
@@ -59,21 +163,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionHeader: {
-    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '110%',
-    marginLeft: -20,
-    backgroundColor: theme.colors.primaryPurple,
+    backgroundColor: theme.colors.lightPurple,
+    borderRadius: 12,
     marginBottom: 12,
-    paddingTop: 4,
+    paddingVertical: 8,
   },
   textHeader: {
     fontSize: 16,
     fontFamily: theme.fonts.ibmPlexSans,
     fontWeight: 'bold',
     color: theme.colors.black,
-    marginBottom: 8,
+  },
+  noResults: {
+    fontSize: 14,
+    fontFamily: theme.fonts.ibmPlexSans,
+    color: theme.colors.darkerGray,
+    textAlign: 'center',
+    marginTop: 12,
   },
   backButton: {
     flexDirection: 'row',

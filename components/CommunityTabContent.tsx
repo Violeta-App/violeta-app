@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import * as Location from 'expo-location';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { ReportCard } from './ReportCard';
@@ -12,19 +12,18 @@ export function CommunityTabContent() {
   const [currentAddress, setCurrentAddress] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [allOccurrences, setAllOccurrences] = useState([]);
+  const [allPlaces, setAllPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const places = [
-    { title: "Hamburgueria do seu Zé", rating: "4.4", distance: "0.7 km", category: "Gastronomia" },
-    { title: "Feirinha na Laje", rating: "4.4", distance: "0.7 km", category: "Eventos" },
-    { title: "Biblioteca Municipal", rating: "4.8", distance: "1.2 km", category: "Cultura" },
-  ];
+  const [currentCoords, setCurrentCoords] = useState(null);
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
+
       const location = await Location.getCurrentPositionAsync({});
+      setCurrentCoords(location.coords);
+
       const geocode = await Location.reverseGeocodeAsync(location.coords);
       if (geocode.length > 0) {
         const address = geocode[0];
@@ -34,19 +33,25 @@ export function CommunityTabContent() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (searchQuery.trim().length === 0) return;
-    fetchOccurrences();
-  }, [searchQuery]);
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
 
-  const fetchOccurrences = async () => {
+    if (query.trim() === '') return;
+
     setLoading(true);
     try {
-      const response = await fetch('https://violeta-be.onrender.com/occurrences');
-      const data = await response.json();
-      setAllOccurrences(data);
+      const [occRes, placesRes] = await Promise.all([
+        fetch('https://violeta-be.onrender.com/occurrences'),
+        fetch('https://violeta-be.onrender.com/locais_seguros'),
+      ]);
+
+      const occurrences = await occRes.json();
+      const places = await placesRes.json();
+
+      setAllOccurrences(occurrences);
+      setAllPlaces(places);
     } catch (err) {
-      console.error('Erro ao buscar relatos:', err);
+      console.error('Erro ao buscar dados:', err);
     } finally {
       setLoading(false);
     }
@@ -57,18 +62,39 @@ export function CommunityTabContent() {
     return date.toLocaleDateString('pt-BR');
   };
 
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const searchLower = searchQuery.toLowerCase();
+
   const filteredOccurrences = allOccurrences.filter((item) =>
-    item.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.main_reason.toLowerCase().includes(searchQuery.toLowerCase())
+    item.address.toLowerCase().includes(searchLower) ||
+    item.main_reason.toLowerCase().includes(searchLower)
   );
 
-  const filteredPlaces = places.filter((place) =>
-    place.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    place.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPlaces = allPlaces
+    .map((place) => ({
+      ...place,
+      distance: currentCoords
+        ? getDistance(currentCoords.latitude, currentCoords.longitude, place.latitude, place.longitude)
+        : null,
+    }))
+    .filter((place) =>
+      place.name.toLowerCase().includes(searchLower) ||
+      place.tipo.toLowerCase().includes(searchLower)
+    );
 
   return (
-    <View>
+    <ScrollView style={{ paddingBottom: 40 }}>
       <View style={styles.locationContainer}>
         <Text style={styles.locationText}>
           {currentAddress ? currentAddress : 'Carregando localização...'}
@@ -76,48 +102,55 @@ export function CommunityTabContent() {
         <FontAwesome5 name="map-marker-alt" size={14} color="#674188" style={{ marginLeft: 4 }} />
       </View>
 
-      <SearchBarLocal onSearch={setSearchQuery} />
+      <SearchBarLocal onSearch={handleSearch} />
 
-      {searchQuery.trim().length > 0 ? (
-        loading ? (
-          <ActivityIndicator size="large" color={theme.colors.lightPurple} style={{ marginTop: 20 }} />
-        ) : (
-          <>
-            <Text style={styles.sectionHeader}>Relatos</Text>
-            {filteredOccurrences.length > 0 ? (
-              filteredOccurrences.map((item) => (
-                <ReportCard
-                  key={item.occurrence_id}
-                  location={item.address}
-                  timestamp={`${formatDate(item.date)} ${item.time}`}
-                  category={item.main_reason}
-                  description={item.occurrence_description}
-                />
-              ))
-            ) : (
-              <Text style={styles.noResults}>Nenhum relato encontrado.</Text>
-            )}
-
-            <Text style={[styles.sectionHeader, { marginTop: 24 }]}>Lugares</Text>
-            {filteredPlaces.length > 0 ? (
-              filteredPlaces.map((place, index) => (
-                <LocationCard
-                  key={index}
-                  title={place.title}
-                  rating={place.rating}
-                  distance={place.distance}
-                  category={place.category}
-                />
-              ))
-            ) : (
-              <Text style={styles.noResults}>Nenhum local encontrado.</Text>
-            )}
-          </>
-        )
-      ) : (
+      {searchQuery.trim().length === 0 ? (
         <NearbyContent />
+      ) : loading ? (
+        <ActivityIndicator size="large" color={theme.colors.lightPurple} style={{ marginTop: 20 }} />
+      ) : (
+        <>
+          <Text style={styles.sectionHeader}>Relatos</Text>
+          {filteredOccurrences.length > 0 ? (
+            filteredOccurrences.map((item) => (
+              <ReportCard
+                key={item.occurrence_id}
+                location={item.address}
+                timestamp={`${formatDate(item.date)} ${item.time}`}
+                category={item.main_reason}
+                description={item.occurrence_description}
+              />
+            ))
+          ) : (
+            <Text style={styles.noResults}>Nenhum relato encontrado.</Text>
+          )}
+
+          <Text style={[styles.sectionHeader, { marginTop: 24 }]}>Lugares</Text>
+          {filteredPlaces.length > 0 ? (
+            filteredPlaces.map((place, index) => (
+              <LocationCard
+                key={place.id || index}
+                title={place.name}
+                rating={place.rating?.toFixed(1) || '4.0'}
+                distance={place.distance ? `${place.distance.toFixed(1)} km` : '—'}
+                category={place.tipo}
+                openingHours={{
+                  sunday: place.sunday,
+                  monday: place.monday,
+                  tuesday: place.tuesday,
+                  wednesday: place.wednesday,
+                  thursday: place.thursday,
+                  friday: place.friday,
+                  saturday: place.saturday,
+                }}
+              />
+            ))
+          ) : (
+            <Text style={styles.noResults}>Nenhum local encontrado.</Text>
+          )}
+        </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -129,6 +162,8 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 4,
     marginBottom: 16,
+    marginTop: 10,
+    marginHorizontal: 16,
   },
   locationText: {
     color: '#674188',
@@ -141,6 +176,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.ibmPlexSans,
     marginVertical: 10,
     color: theme.colors.black,
+    marginLeft: 16,
   },
   noResults: {
     fontSize: 14,
