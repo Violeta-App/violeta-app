@@ -7,10 +7,11 @@ interface ActionButtonsProps {
     destinationText: string;
   onResetRoute: () => void;
   onCallPolice: () => void;
+  onRouteSelected: () => void;
   setAddModalVisible: (visible: boolean) => void;
 }
 
-const RouteButtons: React.FC<ActionButtonsProps> = ({ destinationText, onResetRoute, onCallPolice, setAddModalVisible }) => {
+const RouteButtons: React.FC<ActionButtonsProps> = ({ destinationText, onResetRoute, onCallPolice, onRouteSelected, setAddModalVisible }) => {
   return (
     <View style={styles.actionButtonsContainer}>
      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
@@ -23,7 +24,7 @@ const RouteButtons: React.FC<ActionButtonsProps> = ({ destinationText, onResetRo
         <TouchableOpacity style={styles.secondaryButton} onPress={onResetRoute}>
           <Text style={styles.secondaryButtonText}>Novo destino</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={onCallPolice}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={onRouteSelected}>
           <Text style={styles.secondaryButtonText}>Rotas</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.sosButton} onPress={onCallPolice}>

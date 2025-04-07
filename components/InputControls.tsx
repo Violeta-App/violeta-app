@@ -35,7 +35,7 @@ const InputControls: React.FC<Props> = ({
       />
       <TouchableOpacity style={styles.button} onPress={onSearchPress}>
         <FontAwesome5 name="search" size={16} color={'#2A2A2A'} style={{ marginRight: 8 }} />
-        <Text style={styles.buttonText}>Buscar Rota</Text>
+        <Text style={styles.buttonText}>Buscar Rotas</Text>
       </TouchableOpacity>
     </View>
   );

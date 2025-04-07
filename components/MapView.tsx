@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, Dimensions, Image, Text, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_DEFAULT, Region, Marker, Polyline } from 'react-native-maps';
 import { fetchAlerts, createAlert, deleteAlert, fetchAlertById, Alerta, AlertaInput  } from '../assets/alertas';
-import { alerts } from '../assets/alerts';
 import Geocoder from 'react-native-geocoding';
 import { Linking } from 'react-native';
 import AlertModal from "@/components/AlertModal";
@@ -10,7 +9,7 @@ import useLocation from '../hooks/useLocation';
 import InputControls from '@/components/InputControls';
 import RouteButtons from '@/components/RouteButtons';
 import AddAlertModal from '@/components/AddAlert';
-import AlternativeRoutesStyles from './AlternativeRouteStyle';
+import AlternativeRoutesButtons from './ChooseRoutesButtons';
 import { decode } from '@mapbox/polyline';
 
 const { width, height } = Dimensions.get('window');
@@ -58,7 +57,6 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8';
 const MapScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
   const [alerts, setAlert] = useState<OccType[]>([]);
-  //const [alertas, setAlertas] = useState<any[]>([]);
 
   // Estados dos modais e inputs
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -69,8 +67,6 @@ const MapScreen: React.FC = () => {
   const [newType, setNewType] = useState('');
   const [currentRegion, setCurrentRegion] = useState<Region>();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
-  const [allAllerts, setAlerts] = useState(alerts);
-
   
   // Estados da rota
   const [origin, setOrigin] = useState({ latitude: 0, longitude: 0 });
@@ -220,6 +216,11 @@ const MapScreen: React.FC = () => {
 
   const callPolice = () => {
     Linking.openURL('tel:190');
+  };
+
+  const showRouteOptions = () => {
+    setSelectedRoute(null); 
+    setShouldDrawRoute(false); 
   };
 
   const formatDuration = (durationString: string): string => {
@@ -382,24 +383,13 @@ const MapScreen: React.FC = () => {
 
       {/* Botões para selecionar a rota alternativa */}
       {alternativeRoutes.length > 0 && !selectedRoute && (
-        <View style={AlternativeRoutesStyles.alternativeRoutesContainer}>
-          {alternativeRoutes.map((route, index) => {
-            const safetyPercent = calculateRouteSafety(route);
-            console.log(route.duration);
-            const durationFormatted = route.duration ? formatDuration(route.duration) : 'Tempo não disponível';
-            return (
-              <TouchableOpacity
-                key={index}
-                style={AlternativeRoutesStyles.alternativeRouteButton}
-                onPress={() => handleSelectRoute(route)}
-              >
-                <Text>
-                  Opção {index + 1}: {safetyPercent.toFixed(2)}% segura - {durationFormatted}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <AlternativeRoutesButtons
+          routes={alternativeRoutes}
+          onSelectRoute={handleSelectRoute}
+          calculateRouteSafety={calculateRouteSafety}
+          formatDuration={formatDuration}
+          destinationText={destinationText}
+        />
       )}
 
       {/* Alert Modal */}
@@ -436,8 +426,10 @@ const MapScreen: React.FC = () => {
             destinationText={destinationText}
             onResetRoute={handleResetRoute}
             onCallPolice={callPolice}
+            onRouteSelected={showRouteOptions}
             setAddModalVisible={setAddModalVisible}
           />
+
         )
       )}
     </View>
