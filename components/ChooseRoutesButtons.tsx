@@ -17,56 +17,51 @@ const AlternativeRoutesButtons: React.FC<Props> = ({
   formatDuration,
   destinationText
 }) => {
+  const sortedRoutes = routes
+  .slice()
+  .sort((a, b) => calculateRouteSafety(b) - calculateRouteSafety(a));
+
   return (
     <View style={styles.bottomSheet}>
       <Text style={styles.headerText}>Rotas para {destinationText} </Text>
-
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {routes.map((route, index) => {
-          const safetyPercent = calculateRouteSafety(route);
-          const durationFormatted = route.duration
-            ? formatDuration(route.duration)
-            : 'Tempo não disponível';
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {sortedRoutes.map((route, index) => {
+        const safetyPercent = calculateRouteSafety(route);
+        const durationFormatted = route.duration
+          ? formatDuration(route.duration)
+          : 'Tempo não disponível';
 
-          return (
-            <View key={index} style={styles.routeCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.routeTitle}> Opcão {index+1} </Text>
-                {/* <View style={styles.infoRow}>
-                  <FontAwesome5 name="heart" size={16} color="black" style={styles.icon} />
-                  <Text style={styles.infoText}>x áreas seguras na rota</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons name="emoji-people" size={16} color="black" style={styles.icon} />
-                  <Text style={styles.infoText}>x parceiros na rota</Text>
-                </View> */}
-                <View style={styles.infoRow}>
-                  <Entypo name="warning" size={16} color="black" style={styles.icon} />
-                  <Text style={styles.infoText}>
-                    {safetyPercent.toFixed(0)}% de segurança na rota
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.rightContent}>
-                <View style={styles.timeRow}>
-                  <FontAwesome5 name="clock" size={14} color="black" />
-                  <Text style={styles.timeText}> {durationFormatted}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.goButton}
-                  onPress={() => onSelectRoute(route)}
-                >
-                  <Text style={styles.goButtonText}>➚ Ir</Text>
-                </TouchableOpacity>
+        return (
+          <View key={index} style={styles.routeCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.routeTitle}> Opcão {index + 1} </Text>
+              <View style={styles.infoRow}>
+                <Entypo name="warning" size={16} color="black" style={styles.icon} />
+                <Text style={styles.infoText}>
+                  {safetyPercent.toFixed(0)}% de segurança na rota
+                </Text>
               </View>
             </View>
-          );
-        })}
-      </ScrollView>
+
+            <View style={styles.rightContent}>
+              <View style={styles.timeRow}>
+                <FontAwesome5 name="clock" size={14} color="black" />
+                <Text style={styles.timeText}> {durationFormatted}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.goButton}
+                onPress={() => onSelectRoute(route)}
+              >
+                <Text style={styles.goButtonText}>➚ Ir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })}
+    </ScrollView>
     </View>
   );
 };
