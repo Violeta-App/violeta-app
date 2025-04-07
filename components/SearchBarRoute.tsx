@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
-import { useNavigation, usePathname } from 'expo-router';
+import { router, useNavigation, usePathname } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '../app/_layout';
+import React from 'react';
 
 export function SearchBarRoute() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,7 +14,7 @@ export function SearchBarRoute() {
     if (searchQuery.trim() === '') return;
     Keyboard.dismiss();
     if (pathname !== '/explore') {
-      navigation.navigate('explore', { query: searchQuery });
+      router.push({ pathname: '/explore', params: { query: searchQuery } });
     }
   };
 

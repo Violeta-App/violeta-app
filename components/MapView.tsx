@@ -11,6 +11,11 @@ import RouteButtons from '@/components/RouteButtons';
 import AddAlertModal from '@/components/AddAlert';
 import AlternativeRoutesButtons from './ChooseRoutesButtons';
 import { decode } from '@mapbox/polyline';
+import { router } from 'expo-router';
+
+type MapScreenProps = {
+  query?: string;
+};
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -54,7 +59,7 @@ type OccType = {
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDJcZ1QMu2IpPHzNDarAfLrTRrtrBHH3_8'; 
 
-const MapScreen: React.FC = () => {
+export default function MapScreen({ query }: MapScreenProps) {
   const mapRef = useRef<MapView>(null);
   const [alerts, setAlert] = useState<OccType[]>([]);
 
@@ -82,8 +87,6 @@ const MapScreen: React.FC = () => {
   const [alternativeRoutes, setAlternativeRoutes] = useState<any[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-
-
 
   // Função para carregar alertas (exemplo)
   useEffect(() => {
@@ -367,8 +370,18 @@ const MapScreen: React.FC = () => {
     setAlternativeRoutes([]);
     setSelectedRoute(null);
     setShouldDrawRoute(false);
+    router.replace('/explore'); // ou o caminho base da sua tela de mapa
+
   };
 
+  useEffect(() => {
+    if (query!== undefined) {
+      console.log('Query:', query);
+      setDestinationText(query);
+      setOriginText(`Avenida Rio Branco, 240`);
+    }
+  }, [query, origin]);
+  
   return (
     <View style={{ flex: 1 }}>
       <MapView
@@ -463,4 +476,3 @@ const MapScreen: React.FC = () => {
   );
 };
 
-export default MapScreen;
