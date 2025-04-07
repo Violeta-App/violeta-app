@@ -34,11 +34,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,
-    paddingBottom: 100,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 70,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
 });

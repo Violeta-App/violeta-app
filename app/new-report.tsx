@@ -24,6 +24,7 @@ export default function NewReportScreen() {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState(null);
   const [geoData, setGeoData] = useState<any>(null);
@@ -160,17 +161,49 @@ export default function NewReportScreen() {
         {autoAddress && <Text style={{ fontSize: 12, marginBottom: 12 }}>{autoAddress}</Text>}
 
         <Text style={styles.label}>Data e Hora</Text>
-        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateTimePicker}>
-          <Text>{date.toLocaleDateString()}  {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setShowDatePicker(true);
+            setTimeout(() => setShowTimePicker(true), 500);
+          }}
+          style={styles.dateTimePicker}
+        >
+          <Text>
+            {date.toLocaleDateString()}  {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
         </TouchableOpacity>
+
         {showDatePicker && (
           <DateTimePicker
             value={date}
-            mode="datetime"
+            mode="date"
             display="default"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
-              if (selectedDate) setDate(selectedDate);
+              if (selectedDate) {
+                const updatedDate = new Date(date);
+                updatedDate.setFullYear(selectedDate.getFullYear());
+                updatedDate.setMonth(selectedDate.getMonth());
+                updatedDate.setDate(selectedDate.getDate());
+                setDate(updatedDate);
+              }
+            }}
+          />
+        )}
+
+        {showTimePicker && (
+          <DateTimePicker
+            value={date}
+            mode="time"
+            display="default"
+            onChange={(event, selectedTime) => {
+              setShowTimePicker(false);
+              if (selectedTime) {
+                const updatedDate = new Date(date);
+                updatedDate.setHours(selectedTime.getHours());
+                updatedDate.setMinutes(selectedTime.getMinutes());
+                setDate(updatedDate);
+              }
             }}
           />
         )}
