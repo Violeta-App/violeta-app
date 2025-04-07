@@ -218,9 +218,36 @@ const MapScreen: React.FC = () => {
     Linking.openURL('tel:190');
   };
 
-  const showRouteOptions = () => {
-    setSelectedRoute(null); 
-    setShouldDrawRoute(false); 
+  const showRouteOptions = async () => {
+    if (!originText || !destinationText) return;
+
+    setSelectedRoute(null);
+    setShouldDrawRoute(false);
+    setRouteCoordinates([]);
+    setSegmentsColors([]);
+    setIsCalculatingRoute(true);
+  
+    try {
+      Geocoder.init(GOOGLE_MAPS_APIKEY);
+      const [originRes, destinationRes] = await Promise.all([
+        Geocoder.from(originText),
+        Geocoder.from(destinationText),
+      ]);
+  
+      const originLoc = originRes.results[0].geometry.location;
+      const destinationLoc = destinationRes.results[0].geometry.location;
+  
+      const routes = await fetchRoutesV2(originLoc, destinationLoc);
+      if (routes && routes.length > 0) {
+        setAlternativeRoutes(routes);
+      } else {
+        setAlternativeRoutes([]);
+      }
+    } catch (err) {
+      console.warn('Erro ao recarregar alternativas de rota:', err);
+    } finally {
+      setIsCalculatingRoute(false);
+    } 
   };
 
   const formatDuration = (durationString: string): string => {
