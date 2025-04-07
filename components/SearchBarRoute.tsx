@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
-import { router, useNavigation, usePathname } from 'expo-router';
+import { router, useFocusEffect, useNavigation, usePathname } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '../app/_layout';
 import React from 'react';
@@ -17,6 +17,12 @@ export function SearchBarRoute() {
       router.push({ pathname: '/explore', params: { query: searchQuery } });
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery('');
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
